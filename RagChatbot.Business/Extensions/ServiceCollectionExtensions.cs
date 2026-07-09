@@ -31,6 +31,7 @@ namespace RagChatbot.Business.Extensions
             services.AddScoped<IDocumentChunkRepository, DocumentChunkRepository>();
             services.AddScoped<IChatSessionRepository, ChatSessionRepository>();
             services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
+            services.AddScoped<IAppSettingRepository, AppSettingRepository>();
             
             // Register Scoped Services
             services.AddScoped<IAuthService, AuthService>();
@@ -42,6 +43,7 @@ namespace RagChatbot.Business.Extensions
             services.AddScoped<IContactService, ContactService>();
             services.AddScoped<IDocumentExtractionService, DocumentExtractionService>();
             services.AddScoped<ITextChunkingService, TextChunkingService>();
+            services.AddScoped<ISettingService, SettingService>();
             services.AddScoped<IAiService, AiService>();
             services.AddScoped<IVectorSearchService, VectorSearchService>();
             services.AddScoped<IAuditLogService, AuditLogService>();

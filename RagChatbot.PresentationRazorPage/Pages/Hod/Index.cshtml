@@ -31,13 +31,14 @@
                     <tr>
                         <th scope="col" class="px-6 py-4">Mã Môn</th>
                         <th scope="col" class="px-6 py-4">Tên Môn học</th>
+                        <th scope="col" class="px-6 py-4">Giảng viên phụ trách</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60" id="subject-list">
                     @if (!Model.Subjects.Any())
                     {
                         <tr>
-                            <td colspan="2" class="px-6 py-12 text-center text-slate-500">Chưa có môn học nào thuộc quản lý của bạn.</td>
+                            <td colspan="3" class="px-6 py-12 text-center text-slate-500">Chưa có môn học nào thuộc quản lý của bạn.</td>
                         </tr>
                     }
                     else
@@ -47,6 +48,31 @@
                             <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group">
                                 <td class="px-6 py-4 font-mono text-xs font-bold text-slate-500 dark:text-slate-400">@subject.Code</td>
                                 <td class="px-6 py-4 font-bold text-gray-900 dark:text-slate-100">@subject.Name</td>
+                                <td class="px-6 py-4">
+                                    <form method="post" asp-page-handler="AssignLecturer" class="flex items-center gap-2">
+                                        <input type="hidden" name="subjectId" value="@subject.Id" />
+                                        <select name="lecturerId"
+                                                class="text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 px-2 py-1.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                            <option value="">— Chưa gán —</option>
+                                            @foreach (var lecturer in Model.Lecturers)
+                                            {
+                                                var name = $"{lecturer.LastName} {lecturer.FirstName}".Trim();
+                                                if (subject.LecturerId == lecturer.Id)
+                                                {
+                                                    <option value="@lecturer.Id" selected>@name</option>
+                                                }
+                                                else
+                                                {
+                                                    <option value="@lecturer.Id">@name</option>
+                                                }
+                                            }
+                                        </select>
+                                        <button type="submit"
+                                                class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-colors">
+                                            Lưu
+                                        </button>
+                                    </form>
+                                </td>
                             </tr>
                         }
                     }

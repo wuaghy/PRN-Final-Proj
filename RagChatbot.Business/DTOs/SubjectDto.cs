@@ -10,6 +10,8 @@ namespace RagChatbot.Business.DTOs
         public bool IsActive { get; set; }
         public int? DepartmentId { get; set; }
         public string DepartmentName { get; set; } = string.Empty;
+        public int? LecturerId { get; set; }
+        public string LecturerName { get; set; } = "Chưa gán";
         public ICollection<DocumentDto> Documents { get; set; } = new List<DocumentDto>();
     }
 

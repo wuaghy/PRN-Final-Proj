@@ -20,6 +20,7 @@ namespace RagChatbot.DataAccess.Data
         public DbSet<AuditLog> AuditLogs { get; set; }
 
         public DbSet<ContactMessage> ContactMessages { get; set; }
+        public DbSet<AppSetting> AppSettings { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -70,6 +71,18 @@ namespace RagChatbot.DataAccess.Data
                 .HasForeignKey(s => s.DepartmentId)
                 .OnDelete(DeleteBehavior.SetNull);
 
+            // Subject -> AppUser (Lecturer): 1 lecturer -> many subjects, SetNull on delete
+            modelBuilder.Entity<Subject>()
+                .HasOne(s => s.Lecturer)
+                .WithMany()
+                .HasForeignKey(s => s.LecturerId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+
+            // AppSetting: key-value store, unique key
+            modelBuilder.Entity<AppSetting>()
+                .HasIndex(s => s.Key)
+                .IsUnique();
 
             // AuditLog
             modelBuilder.Entity<AuditLog>()

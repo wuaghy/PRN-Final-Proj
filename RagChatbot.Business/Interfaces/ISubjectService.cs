@@ -14,5 +14,8 @@ namespace RagChatbot.Business.Interfaces
         Task<bool> ExistsByCodeAsync(string code, int? excludeId = null);
 
         Task ToggleStatusAsync(int id);
+
+        /// <summary>Gán/gỡ giảng viên cho môn học. lecturerId null = gỡ. Trả về false nếu không tìm thấy môn.</summary>
+        Task<bool> AssignLecturerAsync(int subjectId, int? lecturerId);
     }
 }

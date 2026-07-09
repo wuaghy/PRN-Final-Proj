@@ -21,6 +21,7 @@ namespace RagChatbot.Business.Services
                 .Include(s => s.Documents)
                 .Include(s => s.Department)
                     .ThenInclude(d => d.Users) // SỬA LỖI: Nạp thêm danh sách User của Bộ môn
+                .Include(s => s.Lecturer)
                 .FirstOrDefaultAsync(s => s.Id == id);
             return entity.ToDto();
         }
@@ -41,6 +42,7 @@ namespace RagChatbot.Business.Services
             var entities = await _subjectRepository.Query()
                 .Include(s => s.Documents)
                 .Include(s => s.Department).ThenInclude(d => d.Users)
+                .Include(s => s.Lecturer)
                 .Where(s => s.DepartmentId == departmentId)
                 .ToListAsync();
             return entities.Select(s => s.ToDto()!).ToList();
@@ -95,6 +97,16 @@ namespace RagChatbot.Business.Services
                 _subjectRepository.Remove(subject);
                 await _subjectRepository.SaveChangesAsync();
             }
+        }
+
+        public async Task<bool> AssignLecturerAsync(int subjectId, int? lecturerId)
+        {
+            var entity = await _subjectRepository.GetByIdAsync(subjectId);
+            if (entity == null) return false;
+            entity.LecturerId = lecturerId;
+            _subjectRepository.Update(entity);
+            await _subjectRepository.SaveChangesAsync();
+            return true;
         }
 
         public async Task<bool> ExistsByCodeAsync(string code, int? excludeId = null)

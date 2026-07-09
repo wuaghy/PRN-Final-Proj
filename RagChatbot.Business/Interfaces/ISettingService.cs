@@ -1,0 +1,13 @@
+using RagChatbot.Business.DTOs;
+
+namespace RagChatbot.Business.Interfaces
+{
+    public interface ISettingService
+    {
+        /// <summary>Đọc cấu hình chunking từ DB; key thiếu dùng mặc định (=hành vi cũ).</summary>
+        Task<ChunkConfig> GetChunkConfigAsync();
+
+        /// <summary>Ghi đè toàn bộ cấu hình chunking (upsert từng key).</summary>
+        Task SaveChunkConfigAsync(ChunkConfig config);
+    }
+}

@@ -20,7 +20,11 @@ namespace RagChatbot.Business.Mappings
                     ? $"{entity.Department.Users.First(u => u.Role == "HeadOfDepartment").LastName} {entity.Department.Users.First(u => u.Role == "HeadOfDepartment").FirstName}".Trim()
                     : "Trống",
                 DepartmentId = entity.DepartmentId,
-                DepartmentName = entity.Department?.Name ?? string.Empty
+                DepartmentName = entity.Department?.Name ?? string.Empty,
+                LecturerId = entity.LecturerId,
+                LecturerName = entity.Lecturer != null
+                    ? $"{entity.Lecturer.LastName} {entity.Lecturer.FirstName}".Trim()
+                    : "Chưa gán"
             };
             if (includeRelations && entity.Documents != null)
             {

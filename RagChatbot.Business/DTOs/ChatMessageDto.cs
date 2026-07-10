@@ -8,6 +8,10 @@ namespace RagChatbot.Business.DTOs
         public string Content { get; set; } = string.Empty;
         public string? Citations { get; set; }
         public DateTime Timestamp { get; set; }
+
+        public int? TokenIn { get; set; }
+        public int? TokenOut { get; set; }
+        public decimal? UsdRate { get; set; }
     }
 
     public class CreateChatMessageDto
@@ -17,5 +21,9 @@ namespace RagChatbot.Business.DTOs
         public string Content { get; set; } = string.Empty;
         public string? Citations { get; set; }
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+
+        public int? TokenIn { get; set; }
+        public int? TokenOut { get; set; }
+        public decimal? UsdRate { get; set; }
     }
 }

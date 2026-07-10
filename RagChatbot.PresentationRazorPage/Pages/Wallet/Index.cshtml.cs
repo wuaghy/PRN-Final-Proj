@@ -1,5 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
+using RagChatbot.DataAccess.Data;
+using RagChatbot.DataAccess.EntityModels;
 using RagChatbot.PresentationRazorPage.Helpers;
 using System.Security.Claims;
 
@@ -8,17 +11,20 @@ namespace RagChatbot.PresentationRazorPage.Pages.Wallet
     public class IndexModel : PageModel
     {
         private readonly RagChatbot.Business.Interfaces.IAppUserService _userService;
+        private readonly ApplicationDbContext _context; // Thêm DbContext
 
-        public IndexModel(RagChatbot.Business.Interfaces.IAppUserService userService)
+        public IndexModel(
+            RagChatbot.Business.Interfaces.IAppUserService userService,
+            ApplicationDbContext context) // Inject DbContext
         {
             _userService = userService;
+            _context = context;
         }
 
         public void OnGet()
         {
         }
 
-        // 1. HÀM TẠO LINK VÀ ĐIỀU HƯỚNG SANG VNPAY
         public IActionResult OnPostPayPremium()
         {
             string vnp_Url = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
@@ -28,7 +34,6 @@ namespace RagChatbot.PresentationRazorPage.Pages.Wallet
 
             var vnpay = new VnPayLibrary();
 
-            // SỬA TẠI ĐÂY: Xử lý ép IP về IPv4 chuẩn để không bị lỗi ký tự ":" trên localhost
             string ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
             if (ipAddress == "::1")
             {
@@ -38,15 +43,12 @@ namespace RagChatbot.PresentationRazorPage.Pages.Wallet
             vnpay.AddRequestData("vnp_Version", "2.1.0");
             vnpay.AddRequestData("vnp_Command", "pay");
             vnpay.AddRequestData("vnp_TmnCode", vnp_TmnCode);
-            vnpay.AddRequestData("vnp_Amount", (100000 * 100).ToString());
+            vnpay.AddRequestData("vnp_Amount", (100000 * 100).ToString()); // 100,000 VND
             vnpay.AddRequestData("vnp_CreateDate", DateTime.Now.ToString("yyyyMMddHHmmss"));
             vnpay.AddRequestData("vnp_CurrCode", "VND");
             vnpay.AddRequestData("vnp_IpAddr", ipAddress);
             vnpay.AddRequestData("vnp_Locale", "vn");
-
-            // SỬA TẠI ĐÂY: Viết liền không dấu/không cách để triệt tiêu hoàn toàn rủi ro lệch mã hóa URL
             vnpay.AddRequestData("vnp_OrderInfo", "ThanhToanPremium");
-
             vnpay.AddRequestData("vnp_OrderType", "other");
             vnpay.AddRequestData("vnp_ReturnUrl", vnp_ReturnUrl);
             vnpay.AddRequestData("vnp_TxnRef", DateTime.Now.Ticks.ToString());
@@ -56,7 +58,6 @@ namespace RagChatbot.PresentationRazorPage.Pages.Wallet
             return Redirect(paymentUrl);
         }
 
-        // 2. HÀM ĐÓN KẾT QUẢ TRẢ VỀ TỪ VNPAY
         public async Task<IActionResult> OnGetVnpayReturnAsync()
         {
             string vnp_HashSecret = "INOS733PMZQZR8KO4EH5VG8L0TKPRQ66";
@@ -86,6 +87,27 @@ namespace RagChatbot.PresentationRazorPage.Pages.Wallet
                         {
                             currentUser.Subscription = "Premium";
                             await _userService.UpdateUserAsync(currentUser);
+
+                            // LẤY SỐ TIỀN THỰC TẾ TỪ VNPAY (VNPAY nhân 100 nên phải chia lại 100)
+                            string rawAmount = vnpay.GetResponseData("vnp_Amount");
+                            decimal amountVnd = decimal.TryParse(rawAmount, out var parsedAmt) ? parsedAmt / 100m : 100000m;
+
+                            // LẤY TỶ GIÁ DYNAMIC TẠI THỜI ĐIỂM GIAO DỊCH TỪ APPSETTINGS
+                            var usdRateSetting = await _context.AppSettings.FirstOrDefaultAsync(s => s.Key == "UsdVndRate");
+                            decimal currentUsdRate = decimal.TryParse(usdRateSetting?.Value, out var parsedRate) ? parsedRate : 25000m;
+
+                            // TIẾN HÀNH GHI LOG TRANSACTION VÀO DATABASE
+                            var transaction = new Transaction
+                            {
+                                UserId = uId,
+                                Amount = amountVnd,
+                                Type = "Premium",
+                                CreatedAt = DateTime.UtcNow,
+                                UsdVndRate = currentUsdRate
+                            };
+
+                            _context.Transactions.Add(transaction);
+                            await _context.SaveChangesAsync();
                         }
                     }
 

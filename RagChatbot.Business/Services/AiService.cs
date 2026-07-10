@@ -9,7 +9,6 @@ using System.Runtime.CompilerServices;
 namespace RagChatbot.Business.Services
 {
 
-
     public class AiService : IAiService
     {
         private readonly Kernel _kernel;
@@ -45,8 +44,12 @@ namespace RagChatbot.Business.Services
                 if (string.IsNullOrEmpty(chatModel)) chatModel = "gemini-2.5-pro";
                 if (string.IsNullOrEmpty(fastChatModel)) fastChatModel = "gemini-2.5-flash";
 
+                // NOTE: default fallback đổi từ "gemini-embedding-2-preview" (experimental, dễ bị
+                // Google rút/đổi bất ngờ — xem sự cố text-embedding-004 bị khai tử 14/1/2026) sang
+                // "gemini-embedding-001" (bản GA/ổn định). Chỉ áp dụng khi .env KHÔNG set
+                // GoogleAi:EmbeddingModel / OPENAI_EMBEDDING_MODEL.
                 var embeddingModels = string.IsNullOrEmpty(embeddingModelString)
-                    ? new[] { "gemini-embedding-2-preview" }
+                    ? new[] { "gemini-embedding-001" }
                     : embeddingModelString.Split(',').Select(m => m.Trim()).ToArray();
 
                 builder.AddGoogleAIGeminiChatCompletion(chatModel, firstApiKey!);
@@ -87,7 +90,7 @@ namespace RagChatbot.Business.Services
             if (isGoogleKey && string.IsNullOrEmpty(endpoint))
             {
                 var embeddingModels = string.IsNullOrEmpty(embeddingModelString)
-                    ? new[] { "gemini-embedding-2-preview" }
+                    ? new[] { "gemini-embedding-001" }
                     : embeddingModelString.Split(',').Select(m => m.Trim()).ToArray();
 
                 _embeddingGeneration = new GoogleEmbeddingService(embeddingModels, apiKeys);
@@ -111,7 +114,12 @@ namespace RagChatbot.Business.Services
         }
 #pragma warning restore SKEXP0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
-        public async IAsyncEnumerable<string> GetChatStreamingResponseAsync(string systemPrompt, string userMessage, IEnumerable<RagChatbot.Business.DTOs.ChatMessageDto>? history = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public async IAsyncEnumerable<string> GetChatStreamingResponseAsync(
+    string systemPrompt,
+    string userMessage,
+    IEnumerable<RagChatbot.Business.DTOs.ChatMessageDto>? history = null,
+    Action<int, int>? onTokenUsageCaptured = null, // Thêm Callback để báo số lượng token ra ngoài
+    [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             var chatHistory = new ChatHistory(systemPrompt);
 
@@ -129,10 +137,10 @@ namespace RagChatbot.Business.Services
             var executionSettings = new PromptExecutionSettings
             {
                 ExtensionData = new Dictionary<string, object>
-                {
-                    { "max_tokens", 2048 },
-                    { "temperature", 0.2 }
-                }
+        {
+            { "max_tokens", 2048 },
+            { "temperature", 0.2 }
+        }
             };
 
             int maxRetries = 3;
@@ -153,10 +161,7 @@ namespace RagChatbot.Business.Services
                 {
                     if (attempt < maxRetries) { retryNeeded = true; } else throw new TimeoutException("Kết nối API bị quá hạn.");
                 }
-                catch (OperationCanceledException)
-                {
-                    throw; // Propagate to ChatHub
-                }
+                catch (OperationCanceledException) { throw; }
                 catch (Microsoft.SemanticKernel.HttpOperationException ex) when (attempt < maxRetries && (ex.StatusCode == System.Net.HttpStatusCode.InternalServerError || ex.StatusCode == System.Net.HttpStatusCode.TooManyRequests || (ex.Message != null && (ex.Message.Contains("500") || ex.Message.Contains("429")))))
                 {
                     retryNeeded = true;
@@ -187,10 +192,7 @@ namespace RagChatbot.Business.Services
                     {
                         if (attempt < maxRetries && !hasYielded) { retryNeeded = true; } else throw new TimeoutException("Kết nối API bị quá hạn giữa chừng.");
                     }
-                    catch (OperationCanceledException)
-                    {
-                        throw; // Propagate to ChatHub
-                    }
+                    catch (OperationCanceledException) { throw; }
                     catch (Microsoft.SemanticKernel.HttpOperationException ex) when (attempt < maxRetries && !hasYielded && (ex.StatusCode == System.Net.HttpStatusCode.InternalServerError || ex.StatusCode == System.Net.HttpStatusCode.TooManyRequests || (ex.Message != null && (ex.Message.Contains("500") || ex.Message.Contains("429")))))
                     {
                         retryNeeded = true;
@@ -209,15 +211,13 @@ namespace RagChatbot.Business.Services
                     {
                         if (enumerator != null) await enumerator.DisposeAsync();
 
-                        // Retry if response is completely empty
                         if (!hasYielded && attempt < maxRetries)
                         {
                             Console.WriteLine($"[AiService] API returned empty response. Retrying ({attempt}/{maxRetries}) in {delayMs}ms...");
                             await Task.Delay(delayMs, cancellationToken);
                             delayMs *= 2;
-                            break; // break while loop to continue for loop
+                            break;
                         }
-
                         yield break;
                     }
 
@@ -225,6 +225,31 @@ namespace RagChatbot.Business.Services
                     {
                         hasYielded = true;
                         yield return currentContent.Content;
+                    }
+
+                    // BÓC TÁCH METADATA TOKEN (Thường nằm ở chunk cuối cùng hoặc rải rác tùy phiên bản SK)
+                    if (currentContent?.Metadata != null && onTokenUsageCaptured != null)
+                    {
+                        // Hỗ trợ bóc tách linh hoạt cho cả OpenAI và Gemini Metadata định dạng phổ biến của Semantic Kernel
+                        if (currentContent.Metadata.TryGetValue("Usage", out var usageObj) ||
+                            currentContent.Metadata.TryGetValue("UsageMetadata", out usageObj))
+                        {
+                            dynamic? usage = usageObj;
+                            if (usage != null)
+                            {
+                                try
+                                {
+                                    int inputTokens = usage.PromptTokens ?? usage.InputTokens ?? 0;
+                                    int outputTokens = usage.CompletionTokens ?? usage.OutputTokens ?? 0;
+
+                                    if (inputTokens > 0 || outputTokens > 0)
+                                    {
+                                        onTokenUsageCaptured(inputTokens, outputTokens);
+                                    }
+                                }
+                                catch { /* Tránh lỗi ép kiểu động làm sập luồng stream */ }
+                            }
+                        }
                     }
                 }
             }
@@ -290,4 +315,3 @@ namespace RagChatbot.Business.Services
         }
     }
 }
-

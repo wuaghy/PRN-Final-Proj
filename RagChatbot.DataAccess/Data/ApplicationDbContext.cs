@@ -21,6 +21,8 @@ namespace RagChatbot.DataAccess.Data
 
         public DbSet<ContactMessage> ContactMessages { get; set; }
         public DbSet<AppSetting> AppSettings { get; set; }
+
+        public DbSet<Transaction> Transactions { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -90,6 +92,20 @@ namespace RagChatbot.DataAccess.Data
                 .WithMany()
                 .HasForeignKey(a => a.ActorId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<Transaction>(entity =>
+            {
+                entity.HasOne(t => t.User)
+                      .WithMany()
+                      .HasForeignKey(t => t.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.Property(t => t.Amount).HasColumnType("decimal(18,2)");
+                entity.Property(t => t.UsdVndRate).HasColumnType("decimal(18,2)");
+            });
+
+            modelBuilder.Entity<ChatMessage>()
+      .Property(m => m.UsdRate).HasColumnType("decimal(18,2)");
 
             // Data Seeding
             // Hash passwords using SHA256 for simplicity in DAL

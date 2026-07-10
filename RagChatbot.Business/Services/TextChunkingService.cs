@@ -65,7 +65,9 @@ namespace RagChatbot.Business.Services
         }
 
         // AND semantics: a chunk must satisfy every ENABLED chunk-level limit at once.
-        // Stage 1 pre-splits oversized paragraphs (words/paragraph); Stage 2 assembles chunks.
+        // Stage 1 pre-splits oversized paragraphs (words/paragraph); Stage 1.5 guarantees no
+        // single unit alone already breaches an enabled chunk-level cap (handles text with no
+        // '\n' at all — e.g. a whole extracted page as one block); Stage 2 assembles chunks.
         private List<string> ChunkWithLimits(string cleanedText, ChunkConfig c)
         {
             var paragraphs = SplitParagraphs(cleanedText);
@@ -77,6 +79,20 @@ namespace RagChatbot.Business.Services
                 foreach (var p in paragraphs)
                     split.AddRange(SplitByWordCap(p, c.WordsPerParagraph));
                 paragraphs = split;
+            }
+
+            // Stage 1.5: SplitParagraphs only breaks on '\n'. Extracted text (e.g. a whole
+            // .docx page) is often a single continuous block with no '\n' at all, so without
+            // this step a single oversized "paragraph" would sail through Stage 2 untouched —
+            // Breaches() only fires when adding a NEXT unit, never for the very first one.
+            // Greedily re-split any unit that alone already exceeds an enabled Words/Chars/
+            // Tokens-per-chunk cap, so those caps have effect even with no paragraph breaks.
+            if (c.WordsPerChunkEnabled || c.CharsPerChunkEnabled || c.TokensPerChunkEnabled)
+            {
+                var capped = new List<string>();
+                foreach (var p in paragraphs)
+                    capped.AddRange(SplitOversizedUnit(p, c));
+                paragraphs = capped;
             }
 
             // Stage 2: accumulate units into chunks; close before any enabled ceiling is breached.
@@ -113,6 +129,52 @@ namespace RagChatbot.Business.Services
             for (int i = 0; i < words.Length; i += maxWords)
                 parts.Add(string.Join(' ', words.Skip(i).Take(maxWords)));
             return parts;
+        }
+
+        // Greedily walk word-by-word, cutting a new unit whenever adding the next word would
+        // breach an enabled Words/Chars/Tokens-per-chunk cap. Mirrors Breaches()'s own checks
+        // so a unit produced here is guaranteed to pass Breaches() as the first item of a chunk.
+        private static IEnumerable<string> SplitOversizedUnit(string text, ChunkConfig c)
+        {
+            if (!ExceedsAlone(text, c))
+            {
+                yield return text;
+                yield break;
+            }
+
+            var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (words.Length <= 1)
+            {
+                yield return text; // single unsplittable token (e.g. one giant word/URL) — best effort
+                yield break;
+            }
+
+            var current = new List<string>();
+            foreach (var w in words)
+            {
+                if (current.Count > 0)
+                {
+                    var candidate = string.Join(' ', current) + " " + w;
+                    if (ExceedsAlone(candidate, c))
+                    {
+                        yield return string.Join(' ', current);
+                        current = new List<string> { w };
+                        continue;
+                    }
+                }
+                current.Add(w);
+            }
+            if (current.Count > 0) yield return string.Join(' ', current);
+        }
+
+        // Would this text alone (as the first/only item of a new chunk) already breach an
+        // enabled Words/Chars/Tokens-per-chunk cap? (ParagraphsPerChunk is not a size cap.)
+        private static bool ExceedsAlone(string text, ChunkConfig c)
+        {
+            if (c.CharsPerChunkEnabled && text.Length > c.CharsPerChunk) return true;
+            if (c.WordsPerChunkEnabled && CountWords(text) > c.WordsPerChunk) return true;
+            if (c.TokensPerChunkEnabled && EstimateTokens(text) > c.TokensPerChunk) return true;
+            return false;
         }
 
         // Would appending `next` to `current` breach any enabled chunk-level limit?

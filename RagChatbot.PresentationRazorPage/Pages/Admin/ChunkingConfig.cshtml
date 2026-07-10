@@ -1,0 +1,156 @@
+﻿@page
+@model RagChatbot.PresentationRazorPage.Pages.Admin.ChunkingConfigModel
+@{
+    ViewData["Title"] = "Cấu hình Chunking";
+}
+
+<div class="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 transition-colors duration-200">
+    <div class="flex items-center justify-between mb-8">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+            <span class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                <i class="fa-solid fa-layer-group"></i>
+            </span>
+            Cấu hình Chia nhỏ Tài liệu (Chunking)
+        </h1>
+
+        <div class="flex items-center gap-3">
+            <a asp-page="/Admin/Index" class="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition">
+                <i class="fa-solid fa-arrow-left mr-2"></i>Quay lại
+            </a>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="mb-6 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400 px-4 py-3 rounded-xl flex items-center gap-3 animate-[fadeIn_0.3s_ease-out]">
+            <i class="fa-solid fa-circle-check"></i>
+            <span class="text-sm font-medium">@Model.SuccessMessage</span>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage) || !ViewData.ModelState.IsValid)
+    {
+        <div class="mb-6 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 text-rose-700 dark:text-rose-400 px-4 py-3 rounded-xl flex flex-col gap-1 animate-[fadeIn_0.3s_ease-out]">
+            <div class="flex items-center gap-3">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <span class="text-sm font-medium">@(Model.ErrorMessage ?? "Cấu hình chưa hợp lệ.")</span>
+            </div>
+            <div asp-validation-summary="All" class="text-xs pl-7"></div>
+        </div>
+    }
+
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 lg:p-8 shadow-sm">
+        <div class="mb-6">
+            <h2 class="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="fa-solid fa-sliders text-emerald-500 dark:text-emerald-400"></i>
+                Tham số Chunking Runtime
+            </h2>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-2">
+                Ghi chú: Chunk phải thỏa mãn TẤT CẢ các điều kiện (AND) đang được bật. Cấu hình này áp dụng ngay lập tức mà không cần build lại app, chỉ ảnh hưởng đến các tài liệu được xử lý <b>sau</b> khi lưu.
+                <b>Trần nào chưa tick ô vuông sẽ bị bỏ qua</b>, dù ô số có nhập giá trị.
+            </p>
+        </div>
+
+        <form method="post" class="space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+                <!-- 1. Words Per Chunk -->
+                <div class="chunk-setting-card p-5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20 transition-all hover:border-emerald-200 dark:hover:border-emerald-800/50">
+                    <div class="flex items-center gap-3 mb-3">
+                        <input type="checkbox" asp-for="Config.WordsPerChunkEnabled" class="chunk-toggle w-4 h-4 text-emerald-600 bg-slate-100 border-slate-300 rounded focus:ring-emerald-500 dark:focus:ring-emerald-600 dark:ring-offset-slate-800 focus:ring-2 dark:bg-slate-700 dark:border-slate-600 cursor-pointer" />
+                        <label class="text-sm font-bold text-gray-900 dark:text-white cursor-pointer uppercase tracking-wider">Số từ / Chunk</label>
+                    </div>
+                    <label class="block text-xs text-slate-500 dark:text-slate-400 mb-2">Trần số từ tối đa trong một chunk.</label>
+                    <input type="number" min="1" asp-for="Config.WordsPerChunk" class="chunk-value w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all" />
+                </div>
+
+                <!-- 2. Chars Per Chunk -->
+                <div class="chunk-setting-card p-5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20 transition-all hover:border-emerald-200 dark:hover:border-emerald-800/50">
+                    <div class="flex items-center gap-3 mb-3">
+                        <input type="checkbox" asp-for="Config.CharsPerChunkEnabled" class="chunk-toggle w-4 h-4 text-emerald-600 bg-slate-100 border-slate-300 rounded focus:ring-emerald-500 dark:focus:ring-emerald-600 dark:ring-offset-slate-800 focus:ring-2 dark:bg-slate-700 dark:border-slate-600 cursor-pointer" />
+                        <label class="text-sm font-bold text-gray-900 dark:text-white cursor-pointer uppercase tracking-wider">Số ký tự / Chunk</label>
+                    </div>
+                    <label class="block text-xs text-slate-500 dark:text-slate-400 mb-2">Trần số ký tự tối đa trong một chunk.</label>
+                    <input type="number" min="1" asp-for="Config.CharsPerChunk" class="chunk-value w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all" />
+                </div>
+
+                <!-- 3. Words Per Paragraph -->
+                <div class="chunk-setting-card p-5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20 transition-all hover:border-emerald-200 dark:hover:border-emerald-800/50">
+                    <div class="flex items-center gap-3 mb-3">
+                        <input type="checkbox" asp-for="Config.WordsPerParagraphEnabled" class="chunk-toggle w-4 h-4 text-emerald-600 bg-slate-100 border-slate-300 rounded focus:ring-emerald-500 dark:focus:ring-emerald-600 dark:ring-offset-slate-800 focus:ring-2 dark:bg-slate-700 dark:border-slate-600 cursor-pointer" />
+                        <label class="text-sm font-bold text-gray-900 dark:text-white cursor-pointer uppercase tracking-wider">Số từ / Đoạn</label>
+                    </div>
+                    <label class="block text-xs text-slate-500 dark:text-slate-400 mb-2">Cắt nhỏ đoạn dài hơn mức này (Tiền xử lý).</label>
+                    <input type="number" min="1" asp-for="Config.WordsPerParagraph" class="chunk-value w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all" />
+                </div>
+
+                <!-- 4. Paragraphs Per Chunk -->
+                <div class="chunk-setting-card p-5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20 transition-all hover:border-emerald-200 dark:hover:border-emerald-800/50">
+                    <div class="flex items-center gap-3 mb-3">
+                        <input type="checkbox" asp-for="Config.ParagraphsPerChunkEnabled" class="chunk-toggle w-4 h-4 text-emerald-600 bg-slate-100 border-slate-300 rounded focus:ring-emerald-500 dark:focus:ring-emerald-600 dark:ring-offset-slate-800 focus:ring-2 dark:bg-slate-700 dark:border-slate-600 cursor-pointer" />
+                        <label class="text-sm font-bold text-gray-900 dark:text-white cursor-pointer uppercase tracking-wider">Số đoạn / Chunk</label>
+                    </div>
+                    <label class="block text-xs text-slate-500 dark:text-slate-400 mb-2">Trần số đoạn tối đa trong một chunk.</label>
+                    <input type="number" min="1" asp-for="Config.ParagraphsPerChunk" class="chunk-value w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all" />
+                </div>
+
+                <!-- 5. Tokens Per Chunk -->
+                <div class="chunk-setting-card p-5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20 transition-all hover:border-emerald-200 dark:hover:border-emerald-800/50">
+                    <div class="flex items-center gap-3 mb-3">
+                        <input type="checkbox" asp-for="Config.TokensPerChunkEnabled" class="chunk-toggle w-4 h-4 text-emerald-600 bg-slate-100 border-slate-300 rounded focus:ring-emerald-500 dark:focus:ring-emerald-600 dark:ring-offset-slate-800 focus:ring-2 dark:bg-slate-700 dark:border-slate-600 cursor-pointer" />
+                        <label class="text-sm font-bold text-gray-900 dark:text-white cursor-pointer uppercase tracking-wider">Token / Chunk</label>
+                    </div>
+                    <label class="block text-xs text-slate-500 dark:text-slate-400 mb-2">Trần Token (Bật mặc định = code cũ).</label>
+                    <input type="number" min="1" asp-for="Config.TokensPerChunk" class="chunk-value w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all" />
+                </div>
+
+                <!-- 6. Overlap -->
+                <div class="p-5 rounded-xl border border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/30 dark:bg-emerald-900/10 transition-all">
+                    <div class="flex items-center gap-3 mb-3">
+                        <i class="fa-solid fa-layer-group text-emerald-500"></i>
+                        <label class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">Overlap (Chung)</label>
+                    </div>
+                    <label class="block text-xs text-slate-500 dark:text-slate-400 mb-2">Số đơn vị chồng lấp giữa các chunk kề nhau.</label>
+                    <input type="number" min="0" asp-for="Config.Overlap" class="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all" />
+                </div>
+            </div>
+
+            <div class="border-t border-slate-100 dark:border-slate-800 pt-6 flex justify-end">
+                <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold py-2.5 px-6 rounded-xl shadow-sm shadow-emerald-500/30 transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-floppy-disk text-xs"></i>
+                    Lưu Cấu hình
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+
+<script>
+    // Tránh lỗi "gõ số nhưng quên tick checkbox" — tự động tick checkbox khi
+    // người dùng chỉnh số trong cùng 1 thẻ .chunk-setting-card.
+    document.querySelectorAll('.chunk-setting-card').forEach(function (card) {
+        var toggle = card.querySelector('.chunk-toggle');
+        var valueInput = card.querySelector('.chunk-value');
+        if (!toggle || !valueInput) return;
+
+        valueInput.addEventListener('input', function () {
+            if (!toggle.checked) {
+                toggle.checked = true;
+            }
+        });
+    });
+</script>

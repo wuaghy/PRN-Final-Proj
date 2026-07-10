@@ -1,4 +1,4 @@
-namespace RagChatbot.DataAccess.EntityModels
+﻿namespace RagChatbot.DataAccess.EntityModels
 {
     public class ChatMessage
     {
@@ -8,6 +8,11 @@ namespace RagChatbot.DataAccess.EntityModels
         public string Content { get; set; } = string.Empty;
         public string? Citations { get; set; } // JSON array string
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+
+        // Các cột mới bổ sung
+        public int? TokenIn { get; set; }
+        public int? TokenOut { get; set; }
+        public decimal? UsdRate { get; set; } // Snapshot tỷ giá tại thời điểm chat
 
         // Navigation Properties
         public ChatSession? Session { get; set; }

@@ -1,23 +1,31 @@
-using RagChatbot.Business.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using RagChatbot.Business.Interfaces;
 using RagChatbot.Business.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 // Load .env file if it exists
-var envPath1 = Path.Combine(Directory.GetCurrentDirectory(), ".env");
-var envPath2 = Path.Combine(Directory.GetCurrentDirectory(), "..", ".env");
-if (File.Exists(envPath1))
+// --- ĐOẠN ĐƯỢC SỬA: Tự động quét ngược thư mục cha để tìm file .env ---
+var currentDir = Directory.GetCurrentDirectory();
+string? targetEnvPath = null;
+
+while (currentDir != null)
 {
-    DotNetEnv.Env.Load(envPath1);
+    var potentialPath = Path.Combine(currentDir, ".env");
+    if (File.Exists(potentialPath))
+    {
+        targetEnvPath = potentialPath;
+        break; // Đã tìm thấy file .env ở thư mục gốc!
+    }
+    currentDir = Directory.GetParent(currentDir)?.FullName;
 }
-else if (File.Exists(envPath2))
+
+if (targetEnvPath != null)
 {
-    DotNetEnv.Env.Load(envPath2);
+    DotNetEnv.Env.Load(targetEnvPath);
 }
 else
 {
-    DotNetEnv.Env.Load(); // Try to load from current directory fallback
+    DotNetEnv.Env.Load(); // Fallback mặc định nếu không tìm thấy
 }
 
 // Add services to the container.

@@ -1,24 +1,20 @@
+using System;
+using System.Security.Claims;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.EntityFrameworkCore;
-using RagChatbot.DataAccess.Data;
-using RagChatbot.DataAccess.EntityModels;
+using RagChatbot.Business.Interfaces;
 using RagChatbot.PresentationRazorPage.Helpers;
-using System.Security.Claims;
 
 namespace RagChatbot.PresentationRazorPage.Pages.Wallet
 {
     public class IndexModel : PageModel
     {
-        private readonly RagChatbot.Business.Interfaces.IAppUserService _userService;
-        private readonly ApplicationDbContext _context; // Thêm DbContext
+        private readonly ITransactionService _transactionService;
 
-        public IndexModel(
-            RagChatbot.Business.Interfaces.IAppUserService userService,
-            ApplicationDbContext context) // Inject DbContext
+        public IndexModel(ITransactionService transactionService)
         {
-            _userService = userService;
-            _context = context;
+            _transactionService = transactionService;
         }
 
         public void OnGet()
@@ -82,33 +78,12 @@ namespace RagChatbot.PresentationRazorPage.Pages.Wallet
                     var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                     if (int.TryParse(userIdStr, out int uId))
                     {
-                        var currentUser = await _userService.GetByIdAsync(uId);
-                        if (currentUser != null)
-                        {
-                            currentUser.Subscription = "Premium";
-                            await _userService.UpdateUserAsync(currentUser);
+                        // LẤY SỐ TIỀN THỰC TẾ TỪ VNPAY (VNPAY nhân 100 nên phải chia lại 100)
+                        string rawAmount = vnpay.GetResponseData("vnp_Amount");
+                        decimal amountVnd = decimal.TryParse(rawAmount, out var parsedAmt) ? parsedAmt / 100m : 100000m;
 
-                            // LẤY SỐ TIỀN THỰC TẾ TỪ VNPAY (VNPAY nhân 100 nên phải chia lại 100)
-                            string rawAmount = vnpay.GetResponseData("vnp_Amount");
-                            decimal amountVnd = decimal.TryParse(rawAmount, out var parsedAmt) ? parsedAmt / 100m : 100000m;
-
-                            // LẤY TỶ GIÁ DYNAMIC TẠI THỜI ĐIỂM GIAO DỊCH TỪ APPSETTINGS
-                            var usdRateSetting = await _context.AppSettings.FirstOrDefaultAsync(s => s.Key == "UsdVndRate");
-                            decimal currentUsdRate = decimal.TryParse(usdRateSetting?.Value, out var parsedRate) ? parsedRate : 25000m;
-
-                            // TIẾN HÀNH GHI LOG TRANSACTION VÀO DATABASE
-                            var transaction = new Transaction
-                            {
-                                UserId = uId,
-                                Amount = amountVnd,
-                                Type = "Premium",
-                                CreatedAt = DateTime.UtcNow,
-                                UsdVndRate = currentUsdRate
-                            };
-
-                            _context.Transactions.Add(transaction);
-                            await _context.SaveChangesAsync();
-                        }
+                        // Gọi service xử lý cập nhật trạng thái Premium và ghi nhận giao dịch
+                        await _transactionService.ProcessPremiumUpgradeAsync(uId, amountVnd);
                     }
 
                     ViewData["Message"] = "🎉 Thanh toán thành công! Tài khoản của bạn đã được nâng cấp lên Premium. Bạn đã có quyền đọc toàn bộ tài liệu.";

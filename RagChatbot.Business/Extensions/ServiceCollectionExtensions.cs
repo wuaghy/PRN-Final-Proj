@@ -49,6 +49,8 @@ namespace RagChatbot.Business.Extensions
             services.AddScoped<IAuditLogService, AuditLogService>();
             services.AddScoped<IEmailService, SmtpEmailService>();
             services.AddScoped<IDocumentProcessingService, DocumentProcessingService>();
+            services.AddScoped<IFinancialService, FinancialService>();
+            services.AddScoped<ITransactionService, TransactionService>();
             
             // Register Singleton Services
             services.AddSingleton<IGoogleDriveService, GoogleDriveService>();

@@ -71,6 +71,12 @@ namespace RagChatbot.Business.Services
             await _repo.SaveChangesAsync();
         }
 
+        public async Task<decimal> GetUsdRateAsync()
+        {
+            var setting = await _repo.Query().FirstOrDefaultAsync(s => s.Key == "UsdVndRate");
+            return decimal.TryParse(setting?.Value, out var parsedRate) ? parsedRate : 25000m;
+        }
+
         private void Upsert(Dictionary<string, AppSetting> map, List<AppSetting> toAdd, string key, string value)
         {
             if (map.TryGetValue(key, out var existing))

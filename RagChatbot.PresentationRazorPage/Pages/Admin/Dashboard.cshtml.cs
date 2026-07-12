@@ -39,7 +39,7 @@ namespace RagChatbot.PresentationRazorPage.Pages.Admin
         {
             Documents = await _documentService.GetRecentDocumentsAsync(10);
 
-            var uploaders = await _userService.GetUsersByRoleAsync("HeadOfDepartment");
+            // Tên người upload đã được map sẵn trong DocumentDto.UploaderFullName — không cần query riêng
             var departments = await _departmentService.GetAllDepartmentsAsync();
 
             ViewData["ActiveCount"] = await _documentService.GetActiveCountAsync();
@@ -55,7 +55,7 @@ namespace RagChatbot.PresentationRazorPage.Pages.Admin
 
             ViewData["PendingContactsCount"] = await _contactService.GetPendingCountAsync();
 
-            ViewData["Uploaders"] = uploaders.ToList();
+
             ViewData["Departments"] = departments.ToList();
         }
 

@@ -192,7 +192,9 @@ namespace RagChatbot.PresentationRazorPage.Hubs
                     var history = await _chatService.GetRecentSessionMessagesAsync(sessionId, 10, savedUserMsg.Id);
 
                     var allDocs = await _documentService.GetBySubjectIdAsync(subjectId);
-                    bool hasActiveDocs = allDocs.Any(d => d.Status == "Indexed" && d.IsActive);
+                    var totalDocs = allDocs.Count();
+                    var indexedActive = allDocs.Where(d => d.Status == "Indexed" && d.IsActive).ToList();
+                    bool hasActiveDocs = indexedActive.Any();
 
                     if (!hasActiveDocs)
                     {
@@ -220,10 +222,9 @@ namespace RagChatbot.PresentationRazorPage.Hubs
                     if (!isGreeting)
                     {
                         standaloneQuery = await _aiService.RewriteQueryAsync(message, history);
-                        _logger.LogInformation("Original Query: {OriginalQuery}, Standalone Query: {StandaloneQuery}", message, standaloneQuery);
-
+                        
                         var questionEmbedding = await _aiService.GenerateEmbeddingAsync(standaloneQuery);
-
+                        
                         if (documentIds != null)
                         {
                             documentIds = documentIds.Where(id => id > 0).ToList();

@@ -1,14 +1,15 @@
-﻿@page
+@page
 @model RagChatbot.PresentationRazorPage.Pages.Admin.IndexModel
 @{
     ViewData["Title"] = "Quản lý Học sinh";
+    var roleText = "Học sinh";
 }
 
     <div class="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 transition-colors duration-200">
     <div class="flex items-center justify-between mb-8">
         <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
             <span class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                <i class="fa-solid fa-user-graduate"></i>
+                <i class="fa-solid fa-users-gear"></i>
             </span>
             Quản lý Học sinh
         </h1>
@@ -117,10 +118,10 @@
                 <div class="px-6 py-3 border-b border-slate-100 dark:border-slate-800/60 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
                     <h3 class="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         <i class="fa-solid fa-users text-emerald-500 dark:text-emerald-400"></i>
-                        Danh sách Học sinh
+                        Danh sách @roleText
                     </h3>
                     <span class="bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-bold px-2.5 py-1 rounded-full">
-                        @Model.Users.Count() học sinh
+                        @Model.Users.Count() @roleText.ToLower()
                     </span>
                 </div>
                 
@@ -153,8 +154,8 @@
                                                         @user.LastName @user.FirstName
                                                         <span class="text-[10px] text-slate-400 font-mono">#@user.Id</span>
                                                     </div>
-                                                    <div class="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
-                                                        <i class="fa-solid fa-envelope text-[10px] opacity-70"></i>@user.Email
+                                                    <div class="text-xs text-slate-550 dark:text-slate-400 mt-0.5 flex flex-col gap-0.5">
+                                                        <span class="flex items-center gap-1"><i class="fa-solid fa-envelope text-[10px] opacity-70"></i>@user.Email</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -165,7 +166,7 @@
                                                 <form asp-page="/Admin/Index" asp-page-handler="ResetPassword" method="post" class="m-0">
                                                     <input type="hidden" name="id" value="@user.Id" />
                                                     <button type="submit" 
-                                                        onclick="return confirm('Bạn có chắc chắn muốn đặt lại mật khẩu về 123456 cho học sinh này?');"
+                                                        onclick="return confirm('Bạn có chắc chắn muốn đặt lại mật khẩu về 123456 cho @roleText.ToLower() này?');"
                                                         class="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:text-blue-400 dark:hover:bg-blue-500/20 transition-all shadow-sm"
                                                         title="Đặt lại mật khẩu">
                                                         <i class="fa-solid fa-key text-sm"></i>
@@ -174,7 +175,7 @@
                                                 <form asp-page="/Admin/Index" asp-page-handler="DeleteUser" method="post" class="m-0">
                                                     <input type="hidden" name="id" value="@user.Id" />
                                                     <button type="submit" 
-                                                        onclick="return confirm('Bạn có chắc chắn muốn xóa học sinh này?');"
+                                                        onclick="return confirm('Bạn có chắc chắn muốn xóa @roleText.ToLower() này?');"
                                                         class="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:text-red-400 dark:hover:bg-red-500/20 transition-all shadow-sm"
                                                         title="Xóa tài khoản">
                                                         <i class="fa-solid fa-trash-can text-sm"></i>
@@ -190,17 +191,17 @@
                 </div>
             </div>
 
-            <!-- Danh sách Học sinh Bị Khóa -->
+            <!-- Danh sách Người dùng Bị Khóa -->
             @if (Model.BannedUsers != null && Model.BannedUsers.Any())
             {
                 <div class="bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-900/50 rounded-2xl shadow-sm overflow-hidden mt-6">
                     <div class="px-6 py-3 border-b border-rose-100 dark:border-rose-900/50 flex items-center justify-between bg-rose-50/50 dark:bg-rose-900/20">
                         <h3 class="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
                             <i class="fa-solid fa-user-lock text-rose-500 dark:text-rose-400"></i>
-                            Tài khoản bị Khóa / Đã xóa
+                            Tài khoản @roleText bị Khóa / Đã xóa
                         </h3>
                         <span class="bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-400 text-xs font-bold px-2.5 py-1 rounded-full">
-                            @Model.BannedUsers.Count() học sinh
+                            @Model.BannedUsers.Count() @roleText.ToLower()
                         </span>
                     </div>
                     
@@ -220,8 +221,8 @@
                                                         @user.LastName @user.FirstName
                                                         <span class="text-[10px] text-slate-400 font-mono no-underline">#@user.Id</span>
                                                     </div>
-                                                    <div class="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
-                                                        <i class="fa-solid fa-envelope text-[10px] opacity-70"></i>@user.Email
+                                                    <div class="text-xs text-slate-500 mt-0.5 flex flex-col gap-0.5">
+                                                        <span class="flex items-center gap-1"><i class="fa-solid fa-envelope text-[10px] opacity-70"></i>@user.Email</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -232,7 +233,7 @@
                                                 <form asp-page="/Admin/Index" asp-page-handler="RestoreUser" method="post" class="m-0">
                                                     <input type="hidden" name="id" value="@user.Id" />
                                                     <button type="submit" 
-                                                        onclick="return confirm('Bạn có chắc chắn muốn khôi phục hoạt động cho học sinh này?');"
+                                                        onclick="return confirm('Bạn có chắc chắn muốn khôi phục hoạt động cho @roleText.ToLower() này?');"
                                                         class="w-auto h-9 px-3 flex items-center justify-center gap-2 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-all shadow-sm font-semibold text-xs"
                                                         title="Khôi phục tài khoản">
                                                         <i class="fa-solid fa-unlock text-sm"></i> Khôi phục

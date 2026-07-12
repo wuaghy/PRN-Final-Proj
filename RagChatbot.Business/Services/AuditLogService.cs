@@ -1,6 +1,9 @@
 using RagChatbot.Business.Interfaces;
 using RagChatbot.DataAccess.EntityModels;
 using RagChatbot.DataAccess.Data;
+using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace RagChatbot.Business.Services
 {
@@ -25,6 +28,14 @@ namespace RagChatbot.Business.Services
 
             _context.AuditLogs.Add(log);
             await _context.SaveChangesAsync();
+        }
+
+        public async Task<IEnumerable<AuditLog>> GetAllLogsAsync()
+        {
+            return await _context.AuditLogs
+                .Include(l => l.Actor)
+                .OrderByDescending(l => l.Timestamp)
+                .ToListAsync();
         }
     }
 }

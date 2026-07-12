@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using RagChatbot.Business.Interfaces;
-using RagChatbot.DataAccess.Data;
 using System.Collections.Concurrent;
 using System.Text.Json;
 
@@ -17,7 +16,7 @@ namespace RagChatbot.PresentationRazorPage.Hubs
         private readonly IAiService _aiService;
         private readonly IDocumentService _documentService;
         private readonly IAppUserService _userService;
-        private readonly ApplicationDbContext _context; // Thêm DbContext
+        private readonly ISettingService _settingService; // Thay thế DbContext bằng SettingService
         private readonly ILogger<ChatHub> _logger;
         private static readonly ConcurrentDictionary<string, CancellationTokenSource> _activeGenerations = new();
 
@@ -28,7 +27,7 @@ namespace RagChatbot.PresentationRazorPage.Hubs
             IAiService aiService,
             IDocumentService documentService,
             IAppUserService userService,
-            ApplicationDbContext context, // Inject DbContext
+            ISettingService settingService, // Inject SettingService
             ILogger<ChatHub> logger)
         {
             _chatService = chatService;
@@ -37,7 +36,7 @@ namespace RagChatbot.PresentationRazorPage.Hubs
             _aiService = aiService;
             _documentService = documentService;
             _userService = userService;
-            _context = context;
+            _settingService = settingService;
             _logger = logger;
         }
 
@@ -355,8 +354,7 @@ Nếu hoàn toàn không có thông tin nào liên quan trong ngữ cảnh, hãy
                     }
 
                     // TRUY VẤN TỶ GIÁ USD DYNAMIC TỪ APPSETTINGS
-                    var usdRateSetting = await _context.AppSettings.FirstOrDefaultAsync(s => s.Key == "UsdVndRate");
-                    decimal activeUsdRate = decimal.TryParse(usdRateSetting?.Value, out var parsedRate) ? parsedRate : 25000m;
+                    decimal activeUsdRate = await _settingService.GetUsdRateAsync();
 
                     // Lưu Assistant Response kèm Metadata Tài chính & Token
                     var assistantMessage = new RagChatbot.Business.DTOs.CreateChatMessageDto

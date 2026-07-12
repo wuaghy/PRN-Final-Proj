@@ -28,12 +28,13 @@ namespace RagChatbot.PresentationRazorPage.Pages.Admin
 
         public System.Collections.Generic.IEnumerable<RagChatbot.Business.DTOs.AppUserDto> Users { get; set; } = default!;
         public System.Collections.Generic.IEnumerable<RagChatbot.Business.DTOs.AppUserDto> BannedUsers { get; set; } = default!;
+        public string CurrentRole { get; set; } = "Student";
 
         public async Task<IActionResult> OnGetAsync(string searchEmail = "")
         {
-            Users = await _userService.GetUsersAsync("Student", true, searchEmail);
-            BannedUsers = await _userService.GetUsersAsync("Student", false, searchEmail);
-            ViewData["Departments"] = await _departmentService.GetAllDepartmentsAsync();
+            CurrentRole = "Student";
+            Users = await _userService.GetUsersAsync(CurrentRole, true, searchEmail);
+            BannedUsers = await _userService.GetUsersAsync(CurrentRole, false, searchEmail);
             return Page();
         }
 
@@ -73,6 +74,16 @@ namespace RagChatbot.PresentationRazorPage.Pages.Admin
                 var success = await _authService.RegisterAsync(email, password, role, firstName, lastName);
                 if (success)
                 {
+                    if (departmentId.HasValue)
+                    {
+                        var createdUser = await _userService.GetByEmailAsync(email);
+                        if (createdUser != null)
+                        {
+                            createdUser.DepartmentId = departmentId.Value;
+                            await _userService.UpdateUserAsync(createdUser);
+                        }
+                    }
+
                     if (emailQueue != null)
                     {
                         var htmlBody = GetWelcomeEmailHtml(firstName, lastName, email, password);

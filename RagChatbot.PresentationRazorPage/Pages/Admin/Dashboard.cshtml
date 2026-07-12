@@ -3,7 +3,6 @@
 
 @{
     ViewData["Title"] = "Dashboard Giám sát Hệ thống";
-    var uploaders = ViewBag.Uploaders as List<RagChatbot.Business.DTOs.AppUserDto> ?? new List<RagChatbot.Business.DTOs.AppUserDto>();
     var departments = ViewBag.Departments as List<RagChatbot.Business.DTOs.DepartmentDto> ?? new List<RagChatbot.Business.DTOs.DepartmentDto>();
     int procCount = ViewBag.ProcessingCount ?? 0;
 
@@ -127,13 +126,11 @@
                     {
                         foreach (var item in Model.Documents)
                         {
-                            var uploader = uploaders.FirstOrDefault(u => u.Id == item.UploaderId);
-                            var dept = departments.FirstOrDefault(d => d.Id == (item.Subject?.DepartmentId ?? 0));
-
                             var docName = string.IsNullOrEmpty(item.DisplayName) ? item.FileName : item.DisplayName;
                             var subjectInfo = item.Subject != null ? $"{item.Subject.Code} {item.Subject.Name}" : "";
-                            var uploaderEmail = uploader != null ? uploader.Email : "";
-                            var searchText = $"{docName} {subjectInfo} {uploaderEmail}".ToLower();
+                            var uploaderDisplay = item.UploaderFullName;
+                            var dept = departments.FirstOrDefault(d => d.Id == (item.Subject?.DepartmentId ?? 0));
+                            var searchText = $"{docName} {subjectInfo} {uploaderDisplay}".ToLower();
 
                             <tr class="document-row hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors"
                                 data-dept-id="@(dept?.Id ?? 0)"
@@ -157,7 +154,7 @@
                                     </span>
                                 </td>
                                 <td class="p-4 font-medium text-slate-500 dark:text-slate-400">
-                                    @uploaderEmail
+                                    @uploaderDisplay
                                 </td>
                                 <td class="p-4">
                                     @if (item.IsActive && item.Status == "Indexed")

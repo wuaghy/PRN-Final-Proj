@@ -21,6 +21,7 @@ namespace RagChatbot.Business.Extensions
                 {
                     o.UseVector();
                     o.MigrationsAssembly("RagChatbot.DataAccess");
+                    o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
                 });
             });
 

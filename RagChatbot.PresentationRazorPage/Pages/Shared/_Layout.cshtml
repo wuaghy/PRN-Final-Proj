@@ -118,104 +118,12 @@
     </style>
 </head>
 <body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col transition-colors duration-200">
+@{
+    var isManagementUser = User.Identity?.IsAuthenticated == true && (User.IsInRole("Admin") || User.IsInRole("HeadOfDepartment") || User.IsInRole("Lecturer"));
+    var currentPath = ViewContext.HttpContext.Request.Path.Value ?? "";
+}
 
-    <header class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex-shrink-0 z-30 shadow-sm transition-colors duration-200 sticky top-0">
-        <div class="px-4 flex items-center justify-between h-14">
-            <a asp-page="/Index"
-               class="flex items-center gap-2.5 font-bold text-gray-800 dark:text-slate-100 text-base select-none">
-                <span class="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center shadow-md shadow-emerald-500/20">
-                    <i class="fa-solid fa-robot text-sm text-white"></i>
-                </span>
-                <span>RAG <span class="text-emerald-600 dark:text-emerald-400">Chatbot</span></span>
-            </a>
-
-            <div class="flex items-center gap-4">
-                <nav class="flex items-center gap-1 border-r border-slate-200 dark:border-slate-800 pr-4">
-
-                    @if (User.IsInRole("Admin"))
-                    {
-                        <a asp-page="/Admin/Dashboard"
-                           class="nav-link flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-500 dark:text-slate-300 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors">
-                            <i class="fa-solid fa-chart-pie text-xs"></i> Dashboard
-                        </a>
-
-                        <a asp-page="/Admin/FinancialDashboard"
-                           class="nav-link flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-500 dark:text-slate-300 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors">
-                            <i class="fa-solid fa-wallet text-xs"></i>Hạ tầng AI
-                        </a>
-
-                        <a asp-page="/Admin/Index"
-                           class="nav-link flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-500 dark:text-slate-300 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors">
-                            <i class="fa-solid fa-users text-xs"></i> QL Người dùng
-                        </a>
-
-                        <a asp-page="/Admin/Departments"
-                           class="nav-link flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-500 dark:text-slate-300 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors">
-                            <i class="fa-solid fa-building text-xs"></i> QL Bộ môn
-                        </a>
-
-                        <a asp-page="/Admin/HeadOfDepartments"
-                           class="nav-link flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-500 dark:text-slate-300 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors">
-                            <i class="fa-solid fa-user-shield text-xs"></i> QL Trưởng BM
-                        </a>
-                        <a asp-page="/Admin/Subjects"
-                           class="nav-link flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-500 dark:text-slate-300 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors">
-                            <i class="fa-solid fa-book text-xs"></i> QL Môn học
-                        </a>
-                        <a asp-page="/Admin/ChunkingConfig"
-                           class="nav-link flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-500 dark:text-slate-300 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors">
-                            <i class="fa-solid fa-layer-group text-xs"></i> Cấu hình Chunking
-                        </a>
-                    }
-
-                    @if (User.IsInRole("Student"))
-                    {
-                        <a asp-page="/Index"
-                           class="nav-link flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-500 dark:text-slate-300 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors">
-                            <i class="fa-solid fa-comments text-xs"></i> Chat
-                        </a>
-
-                        <a asp-page="/Document/Browse"
-                           class="nav-link flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-500 dark:text-slate-300 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors">
-                            <i class="fa-solid fa-book-open text-xs"></i> Thư viện tài liệu
-                        </a>
-
-                        <button onclick="toggleContactModal(true)"
-                                class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-500 dark:text-slate-300 hover:text-orange-600 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition-colors cursor-pointer">
-                            <i class="fa-solid fa-triangle-exclamation text-xs text-orange-500 animate-pulse"></i> Báo lỗi & Góp ý
-                        </button>
-                    }
-
-                    @if (User.IsInRole("Admin") || User.IsInRole("Lecturer") || User.IsInRole("HeadOfDepartment"))
-                    {
-                        <a asp-page="/Document/Index"
-                           class="nav-link flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-500 dark:text-slate-300 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors">
-                            <i class="fa-solid fa-folder-open text-xs"></i> Tài liệu
-                        </a>
-                    }
-                </nav>
-
-                @if (User.Identity?.IsAuthenticated == true)
-                {
-                    <div class="flex items-center gap-3">
-                        <a href="/Profile" class="flex items-center gap-2 text-sm text-slate-600 dark:text-emerald-100 hover:bg-slate-100 dark:hover:bg-slate-800 px-3 py-1.5 rounded-xl transition-colors cursor-pointer" title="Xem hồ sơ">
-                            <i class="fa-solid fa-circle-user text-lg text-emerald-500"></i>
-                            <span class="font-medium text-gray-800 dark:text-slate-100">@User.Identity.Name</span>
-                        </a>
-                        <button id="themeToggleBtn" onclick="toggleTheme()" class="text-sm text-slate-500 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 px-2 py-1 rounded transition-colors" title="Chuyển chế độ Sáng/Tối">
-                            <i id="themeToggleIcon" class="fa-solid fa-moon"></i>
-                        </button>
-                        <form asp-page="/Auth/Logout" method="post" class="m-0">
-                            <button type="submit" class="text-sm text-slate-500 dark:text-slate-300 hover:text-red-500 dark:hover:text-red-400 px-2 py-1 rounded transition-colors" title="Đăng xuất">
-                                <i class="fa-solid fa-right-from-bracket"></i>
-                            </button>
-                        </form>
-                    </div>
-                }
-            </div>
-        </div>
-    </header>
-
+    <!-- Shared Modals -->
     <div id="confirmModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/40 dark:bg-slate-950/80 backdrop-blur-sm">
         <div class="glass dark:bg-slate-900/95 rounded-2xl p-6 w-full max-w-sm mx-4 shadow-xl dark:border-slate-800">
             <div class="flex items-center gap-3 mb-3">
@@ -279,9 +187,201 @@
 
     <partial name="_ToastNotifications" />
 
-    <main class="flex-1 flex flex-col">
-        @RenderBody()
-    </main>
+    @if (isManagementUser)
+    {
+        <div class="flex h-screen overflow-hidden w-full">
+            <!-- Sidebar -->
+            <aside class="w-64 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 flex-shrink-0 flex flex-col border-r border-slate-200 dark:border-slate-800 transition-colors">
+                <!-- Sidebar Brand/Logo -->
+                <div class="h-16 flex items-center px-6 border-b border-slate-200 dark:border-slate-800 gap-2.5 font-bold text-gray-800 dark:text-white text-base select-none">
+                    <span class="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center shadow-md shadow-emerald-500/20">
+                        <i class="fa-solid fa-robot text-sm text-white"></i>
+                    </span>
+                    <span>RAG <span class="text-emerald-600 dark:text-emerald-400">Chatbot</span></span>
+                </div>
+
+                <!-- Sidebar Navigation Links -->
+                <nav class="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-2">Hệ thống</div>
+                        
+                        var isDashboard = currentPath.StartsWith("/Admin/Dashboard", StringComparison.OrdinalIgnoreCase);
+                        <a asp-page="/Admin/Dashboard" class="nav-link flex items-center gap-2.5 py-2.5 rounded-xl text-sm font-medium transition-all @(isDashboard ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold border-l-4 border-emerald-500 pl-2" : "text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 pl-3")">
+                            <i class="fa-solid fa-chart-pie w-4"></i> Dashboard
+                        </a>
+
+                        var isFinance = currentPath.StartsWith("/Admin/FinancialDashboard", StringComparison.OrdinalIgnoreCase);
+                        <a asp-page="/Admin/FinancialDashboard" class="nav-link flex items-center gap-2.5 py-2.5 rounded-xl text-sm font-medium transition-all @(isFinance ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold border-l-4 border-emerald-500 pl-2" : "text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 pl-3")">
+                            <i class="fa-solid fa-wallet w-4"></i> Hạ tầng AI
+                        </a>
+
+                        var isUsers = currentPath.Equals("/Admin", StringComparison.OrdinalIgnoreCase) || currentPath.Equals("/Admin/Index", StringComparison.OrdinalIgnoreCase);
+                        <a asp-page="/Admin/Index" class="nav-link flex items-center gap-2.5 py-2.5 rounded-xl text-sm font-medium transition-all @(isUsers ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold border-l-4 border-emerald-500 pl-2" : "text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 pl-3")">
+                            <i class="fa-solid fa-user-graduate w-4"></i> QL Học sinh
+                        </a>
+
+                        var isHods = currentPath.StartsWith("/Admin/HeadOfDepartments", StringComparison.OrdinalIgnoreCase);
+                        <a asp-page="/Admin/HeadOfDepartments" class="nav-link flex items-center gap-2.5 py-2.5 rounded-xl text-sm font-medium transition-all @(isHods ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold border-l-4 border-emerald-500 pl-2" : "text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 pl-3")">
+                            <i class="fa-solid fa-user-shield w-4"></i> QL Trưởng BM
+                        </a>
+
+                        var isLecturers = currentPath.StartsWith("/Admin/Lecturers", StringComparison.OrdinalIgnoreCase);
+                        <a asp-page="/Admin/Lecturers" class="nav-link flex items-center gap-2.5 py-2.5 rounded-xl text-sm font-medium transition-all @(isLecturers ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold border-l-4 border-emerald-500 pl-2" : "text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 pl-3")">
+                            <i class="fa-solid fa-graduation-cap w-4"></i> QL Giảng viên
+                        </a>
+
+                        var isDepts = currentPath.StartsWith("/Admin/Departments", StringComparison.OrdinalIgnoreCase);
+                        <a asp-page="/Admin/Departments" class="nav-link flex items-center gap-2.5 py-2.5 rounded-xl text-sm font-medium transition-all @(isDepts ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold border-l-4 border-emerald-500 pl-2" : "text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 pl-3")">
+                            <i class="fa-solid fa-building w-4"></i> QL Bộ môn
+                        </a>
+
+                        var isSubjects = currentPath.StartsWith("/Admin/Subjects", StringComparison.OrdinalIgnoreCase);
+                        <a asp-page="/Admin/Subjects" class="nav-link flex items-center gap-2.5 py-2.5 rounded-xl text-sm font-medium transition-all @(isSubjects ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold border-l-4 border-emerald-500 pl-2" : "text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 pl-3")">
+                            <i class="fa-solid fa-book w-4"></i> QL Môn học
+                        </a>
+
+                        var isAudit = currentPath.StartsWith("/Admin/AuditLogs", StringComparison.OrdinalIgnoreCase);
+                        <a asp-page="/Admin/AuditLogs" class="nav-link flex items-center gap-2.5 py-2.5 rounded-xl text-sm font-medium transition-all @(isAudit ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold border-l-4 border-emerald-500 pl-2" : "text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 pl-3")">
+                            <i class="fa-solid fa-list-check w-4"></i> Nhật ký kiểm toán
+                        </a>
+
+                        var isChunking = currentPath.StartsWith("/Admin/ChunkingConfig", StringComparison.OrdinalIgnoreCase);
+                        <a asp-page="/Admin/ChunkingConfig" class="nav-link flex items-center gap-2.5 py-2.5 rounded-xl text-sm font-medium transition-all @(isChunking ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold border-l-4 border-emerald-500 pl-2" : "text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 pl-3")">
+                            <i class="fa-solid fa-layer-group w-4"></i> Cấu hình Chunking
+                        </a>
+
+                        var isContacts = currentPath.StartsWith("/Admin/Contacts", StringComparison.OrdinalIgnoreCase);
+                        <a asp-page="/Admin/Contacts" class="nav-link flex items-center gap-2.5 py-2.5 rounded-xl text-sm font-medium transition-all @(isContacts ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold border-l-4 border-emerald-500 pl-2" : "text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 pl-3")">
+                            <i class="fa-solid fa-triangle-exclamation w-4"></i> Yêu cầu hỗ trợ
+                        </a>
+                    }
+                    else if (User.IsInRole("HeadOfDepartment"))
+                    {
+                        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-2">Trưởng bộ môn</div>
+                        
+                        var isDocs = currentPath.StartsWith("/Document", StringComparison.OrdinalIgnoreCase);
+                        <a asp-page="/Document/Index" class="nav-link flex items-center gap-2.5 py-2.5 rounded-xl text-sm font-medium transition-all @(isDocs ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold border-l-4 border-emerald-500 pl-2" : "text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 pl-3")">
+                            <i class="fa-solid fa-folder-open w-4"></i> Tài liệu bộ môn
+                        </a>
+
+                        var isAssign = currentPath.StartsWith("/Hod", StringComparison.OrdinalIgnoreCase);
+                        <a asp-page="/Hod/Index" class="nav-link flex items-center gap-2.5 py-2.5 rounded-xl text-sm font-medium transition-all @(isAssign ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold border-l-4 border-emerald-500 pl-2" : "text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 pl-3")">
+                            <i class="fa-solid fa-user-plus w-4"></i> Phân công giảng dạy
+                        </a>
+                    }
+                    else if (User.IsInRole("Lecturer"))
+                    {
+                        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-2">Giảng viên</div>
+
+                        var isDocs = currentPath.StartsWith("/Document", StringComparison.OrdinalIgnoreCase);
+                        <a asp-page="/Document/Index" class="nav-link flex items-center gap-2.5 py-2.5 rounded-xl text-sm font-medium transition-all @(isDocs ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold border-l-4 border-emerald-500 pl-2" : "text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 pl-3")">
+                            <i class="fa-solid fa-folder-open w-4"></i> Tài liệu cá nhân
+                        </a>
+                    }
+                </nav>
+
+                <!-- Sidebar Profile Footer -->
+                <div class="p-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <i class="fa-solid fa-circle-user text-xl text-emerald-500 flex-shrink-0"></i>
+                        <div class="flex flex-col min-w-0">
+                            <span class="text-xs font-semibold text-gray-800 dark:text-slate-100 truncate">@User.Identity?.Name</span>
+                            <span class="text-[10px] text-slate-400 dark:text-slate-500">
+                                @(User.IsInRole("Admin") ? "Admin" : User.IsInRole("HeadOfDepartment") ? "Trưởng bộ môn" : "Giảng viên")
+                            </span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <button onclick="toggleTheme()" class="text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Chuyển chế độ Sáng/Tối">
+                            <i class="fa-solid fa-moon"></i>
+                        </button>
+                        <form asp-page="/Auth/Logout" method="post" class="m-0">
+                            <button type="submit" class="text-slate-500 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Đăng xuất">
+                                <i class="fa-solid fa-right-from-bracket"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Right Content Panel -->
+            <div class="flex-1 flex flex-col min-w-0 h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 transition-colors">
+                <!-- Slim Top Header -->
+                <header class="h-16 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between px-8 flex-shrink-0 transition-colors">
+                    <div class="text-sm font-semibold text-slate-500 dark:text-slate-400">
+                        Bảng điều khiển RAG
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <span class="text-xs text-slate-400 dark:text-slate-500">Hệ thống hỏi đáp học tập</span>
+                    </div>
+                </header>
+
+                <!-- Scrollable Main Content -->
+                <main class="flex-1 overflow-y-auto p-6">
+                    @RenderBody()
+                </main>
+            </div>
+        </div>
+    }
+    else
+    {
+        <header class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex-shrink-0 z-30 shadow-sm transition-colors duration-200 sticky top-0">
+            <div class="px-4 flex items-center justify-between h-14">
+                <a asp-page="/Index"
+                   class="flex items-center gap-2.5 font-bold text-gray-800 dark:text-slate-100 text-base select-none">
+                    <span class="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center shadow-md shadow-emerald-500/20">
+                        <i class="fa-solid fa-robot text-sm text-white"></i>
+                    </span>
+                    <span>RAG <span class="text-emerald-600 dark:text-emerald-400">Chatbot</span></span>
+                </a>
+
+                <div class="flex items-center gap-4">
+                    <nav class="flex items-center gap-1 border-r border-slate-200 dark:border-slate-800 pr-4">
+                        @if (User.IsInRole("Student"))
+                        {
+                            <a asp-page="/Index"
+                               class="nav-link flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-500 dark:text-slate-300 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors">
+                                <i class="fa-solid fa-comments text-xs"></i> Chat
+                            </a>
+
+                            <a asp-page="/Document/Browse"
+                               class="nav-link flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-500 dark:text-slate-300 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors">
+                                <i class="fa-solid fa-book-open text-xs"></i> Thư viện tài liệu
+                            </a>
+
+                            <button onclick="toggleContactModal(true)"
+                                    class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-500 dark:text-slate-300 hover:text-orange-600 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition-colors cursor-pointer">
+                                <i class="fa-solid fa-triangle-exclamation text-xs text-orange-500 animate-pulse"></i> Báo lỗi & Góp ý
+                            </button>
+                        }
+                    </nav>
+
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <div class="flex items-center gap-3">
+                            <a href="/Profile" class="flex items-center gap-2 text-sm text-slate-600 dark:text-emerald-100 hover:bg-slate-100 dark:hover:bg-slate-800 px-3 py-1.5 rounded-xl transition-colors cursor-pointer" title="Xem hồ sơ">
+                                <i class="fa-solid fa-circle-user text-lg text-emerald-500"></i>
+                                <span class="font-medium text-gray-800 dark:text-slate-100">@User.Identity?.Name</span>
+                            </a>
+                            <button id="themeToggleBtn" onclick="toggleTheme()" class="text-sm text-slate-500 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 px-2 py-1 rounded transition-colors" title="Chuyển chế độ Sáng/Tối">
+                                <i id="themeToggleIcon" class="fa-solid fa-moon"></i>
+                            </button>
+                            <form asp-page="/Auth/Logout" method="post" class="m-0">
+                                <button type="submit" class="text-sm text-slate-500 dark:text-slate-300 hover:text-red-500 dark:hover:text-red-400 px-2 py-1 rounded transition-colors" title="Đăng xuất">
+                                    <i class="fa-solid fa-right-from-bracket"></i>
+                                </button>
+                            </form>
+                        </div>
+                    }
+                </div>
+            </div>
+        </header>
+
+        <main class="flex-1 flex flex-col">
+            @RenderBody()
+        </main>
+    }
 
     <script>
         // ── Confirm Modal helpers ────────────────────────────────

@@ -83,6 +83,8 @@ namespace RagChatbot.PresentationRazorPage.Pages.Hod
                     "AssignLecturer",
                     subjectId.ToString(),
                     $"Môn '{subject.Code} - {subject.Name}': giảng viên '{fromName}' → '{toName}'");
+
+                TempData["Success"] = "Phân công giảng viên thành công.";
             }
 
             return RedirectToPage();

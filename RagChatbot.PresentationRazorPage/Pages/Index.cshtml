@@ -242,8 +242,23 @@ connection.on("ReceiveToken", (token, isEnd) => {
     } else if (isEnd) {
         isReceivingStream = false;
         if (currentAssistantMessageDiv) {
+            let citationsJson = token;
+            try {
+                if (token && token.trim().startsWith("{")) {
+                    const parsed = JSON.parse(token);
+                    if (parsed && typeof parsed === "object" && !Array.isArray(parsed) && parsed.finalResponse !== undefined) {
+                        currentAssistantMarkdown = parsed.finalResponse;
+                        citationsJson = JSON.stringify(parsed.citations);
+                    }
+                }
+            } catch (e) {
+                console.error("Error parsing end-of-stream token", e);
+            }
+
             currentAssistantMessageDiv.innerHTML = marked.parse(currentAssistantMarkdown);
-            if (token && token !== "null" && token !== "[]") renderCitations(token, currentAssistantMessageDiv);
+            if (citationsJson && citationsJson !== "null" && citationsJson !== "[]") {
+                renderCitations(citationsJson, currentAssistantMessageDiv);
+            }
         }
         container.scrollTop = container.scrollHeight;
         setChatInputState(true);
@@ -395,10 +410,13 @@ function renderCitations(citationsJson, el) {
         const div = document.createElement("div");
         div.className = "mt-4 pt-3 border-t border-slate-200 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-400";
         div.innerHTML = `<p class="font-semibold mb-1 text-slate-600 dark:text-slate-300">Nguồn tham khảo:</p><ul class="space-y-1">` +
-            cits.map((c,i) => `<li class="flex items-start gap-1.5">
-                <span class="text-emerald-600 dark:text-emerald-400 font-bold">[${i+1}]</span>
-                <span class="font-medium hover:text-emerald-700 dark:hover:text-emerald-400 cursor-help" title="${c.ContentSnippet}">${c.FileName} – trang ${c.Page}</span>
-            </li>`).join('') + `</ul>`;
+            cits.map((c,i) => {
+                const displayIdx = (c.Index !== undefined && c.Index !== null) ? c.Index : (i + 1);
+                return `<li class="flex items-start gap-1.5">
+                    <span class="text-emerald-600 dark:text-emerald-400 font-bold">[${displayIdx}]</span>
+                    <span class="font-medium hover:text-emerald-700 dark:hover:text-emerald-400 cursor-help" title="${c.ContentSnippet}">${c.FileName} – trang ${c.Page}</span>
+                </li>`;
+            }).join('') + `</ul>`;
         el.appendChild(div);
     } catch(e) {}
 }

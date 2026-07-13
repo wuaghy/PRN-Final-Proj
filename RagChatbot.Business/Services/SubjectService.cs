@@ -1,4 +1,4 @@
-﻿using RagChatbot.Business.Interfaces;
+using RagChatbot.Business.Interfaces;
 using RagChatbot.Business.DTOs;
 using RagChatbot.Business.Mappings;
 using RagChatbot.DataAccess.Interfaces;
@@ -9,10 +9,12 @@ namespace RagChatbot.Business.Services
     public class SubjectService : ISubjectService
     {
         private readonly ISubjectRepository _subjectRepository;
+        private readonly ISubjectTermRepository _subjectTermRepository;
 
-        public SubjectService(ISubjectRepository subjectRepository)
+        public SubjectService(ISubjectRepository subjectRepository, ISubjectTermRepository subjectTermRepository)
         {
             _subjectRepository = subjectRepository;
+            _subjectTermRepository = subjectTermRepository;
         }
 
         public async Task<SubjectDto?> GetByIdAsync(int id)
@@ -103,10 +105,53 @@ namespace RagChatbot.Business.Services
         {
             var entity = await _subjectRepository.GetByIdAsync(subjectId);
             if (entity == null) return false;
+
+            if (entity.LecturerId != lecturerId)
+            {
+                // 1. Kết thúc nhiệm kỳ active cũ (nếu có)
+                var activeTerm = await _subjectTermRepository.Query()
+                    .FirstOrDefaultAsync(t => t.SubjectId == subjectId && t.EndAt == null);
+                if (activeTerm != null)
+                {
+                    activeTerm.EndAt = DateTime.UtcNow;
+                    _subjectTermRepository.Update(activeTerm);
+                }
+
+                // 2. Nếu gán giảng viên mới, tạo nhiệm kỳ mới
+                if (lecturerId.HasValue)
+                {
+                    var newTerm = new RagChatbot.DataAccess.EntityModels.SubjectTerm
+                    {
+                        SubjectId = subjectId,
+                        AppUserId = lecturerId.Value,
+                        StartAt = DateTime.UtcNow
+                    };
+                    await _subjectTermRepository.AddAsync(newTerm);
+                }
+
+                await _subjectTermRepository.SaveChangesAsync();
+            }
+
             entity.LecturerId = lecturerId;
             _subjectRepository.Update(entity);
             await _subjectRepository.SaveChangesAsync();
             return true;
+        }
+
+        public async Task<IEnumerable<SubjectTermDto>> GetSubjectTermHistoryAsync(int subjectId)
+        {
+            var terms = await _subjectTermRepository.Query()
+                .Include(t => t.AppUser)
+                .Where(t => t.SubjectId == subjectId)
+                .OrderByDescending(t => t.StartAt)
+                .ToListAsync();
+
+            return terms.Select(t => new SubjectTermDto
+            {
+                LecturerName = t.AppUser != null ? $"{t.AppUser.LastName} {t.AppUser.FirstName}".Trim() : "Không rõ",
+                StartAt = t.StartAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm"),
+                EndAt = t.EndAt.HasValue ? t.EndAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm") : null
+            });
         }
 
         public async Task<bool> ExistsByCodeAsync(string code, int? excludeId = null)

@@ -184,5 +184,10 @@ namespace RagChatbot.PresentationRazorPage.Pages.Admin
             return RedirectToPage();
         }
 
+        public async Task<IActionResult> OnGetSubjectHistoryAsync(int subjectId)
+        {
+            var history = await _subjectService.GetSubjectTermHistoryAsync(subjectId);
+            return new JsonResult(history);
+        }
     }
 }

@@ -18,6 +18,7 @@ namespace RagChatbot.DataAccess.Data
         public DbSet<Department> Departments { get; set; }
         public DbSet<HodTerm> HodTerms { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
+        public DbSet<SubjectTerm> SubjectTerms { get; set; }
 
         public DbSet<ContactMessage> ContactMessages { get; set; }
         public DbSet<AppSetting> AppSettings { get; set; }
@@ -106,6 +107,20 @@ namespace RagChatbot.DataAccess.Data
 
             modelBuilder.Entity<ChatMessage>()
       .Property(m => m.UsdRate).HasColumnType("decimal(18,2)");
+
+            // SubjectTerm Relationships
+            modelBuilder.Entity<SubjectTerm>(entity =>
+            {
+                entity.HasOne(t => t.AppUser)
+                      .WithMany()
+                      .HasForeignKey(t => t.AppUserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(t => t.Subject)
+                      .WithMany()
+                      .HasForeignKey(t => t.SubjectId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
 
             // Data Seeding
             // Hash passwords using SHA256 for simplicity in DAL

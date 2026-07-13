@@ -397,10 +397,19 @@
     <script>
         // ── Confirm Modal helpers ────────────────────────────────
         let _confirmCallback = null;
-        function showConfirmModal(title, message, onConfirm) {
+        function showConfirmModal(title, message, onConfirm, okBtnText = "Xóa", isDanger = true) {
             document.getElementById('confirmTitle').textContent = title;
             document.getElementById('confirmMessage').textContent = message;
             _confirmCallback = onConfirm;
+            const okBtn = document.getElementById('confirmOkBtn');
+            if (okBtn) {
+                okBtn.textContent = okBtnText;
+                if (isDanger) {
+                    okBtn.className = "px-4 py-2 rounded-lg text-sm font-medium bg-red-500 hover:bg-red-600 text-white shadow-sm shadow-red-500/30";
+                } else {
+                    okBtn.className = "px-4 py-2 rounded-lg text-sm font-medium bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shadow-emerald-500/30";
+                }
+            }
             document.getElementById('confirmModal').classList.remove('hidden');
             document.getElementById('confirmModal').classList.add('flex');
         }

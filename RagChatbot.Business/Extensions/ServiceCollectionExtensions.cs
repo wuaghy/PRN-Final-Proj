@@ -38,6 +38,7 @@ namespace RagChatbot.Business.Extensions
             services.AddScoped<IContactMessageRepository, ContactMessageRepository>();
             services.AddScoped<ITransactionRepository, TransactionRepository>();
             services.AddScoped<IHodTermRepository, HodTermRepository>();
+            services.AddScoped<ISubjectTermRepository, SubjectTermRepository>();
             
             // Register Scoped Services
             services.AddScoped<IAuthService, AuthService>();

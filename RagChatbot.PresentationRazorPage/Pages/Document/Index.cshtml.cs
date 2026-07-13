@@ -85,10 +85,6 @@ namespace RagChatbot.PresentationRazorPage.Pages.Document
             foreach (var subjectId in subjectIds)
             {
                 var docs = await _documentService.GetBySubjectIdAsync(subjectId);
-                if (isLecturer)
-                {
-                    docs = docs.Where(d => d.UploaderId == userId);
-                }
                 documents.AddRange(docs);
             }
 
@@ -272,7 +268,8 @@ namespace RagChatbot.PresentationRazorPage.Pages.Document
 
             if (document == null) return new JsonResult(new { success = false, message = "Document not found." });
 
-            bool canDelete = User.IsInRole("Lecturer") && document.UploaderId == userId;
+            var subject = await _subjectService.GetByIdAsync(document.SubjectId);
+            bool canDelete = User.IsInRole("Lecturer") && (document.UploaderId == userId || (subject != null && subject.LecturerId == userId));
             if (!canDelete)
             {
                 return new JsonResult(new { success = false, message = "Bạn không có quyền xóa tài liệu này." });
@@ -293,17 +290,17 @@ namespace RagChatbot.PresentationRazorPage.Pages.Document
 
             if (document == null) return new JsonResult(new { success = false, message = "Document not found." });
 
+            var subject = await _subjectService.GetByIdAsync(document.SubjectId);
             bool canToggle = false;
             if (User.IsInRole("HeadOfDepartment"))
             {
-                var subject = await _subjectService.GetByIdAsync(document.SubjectId);
                 var hodUser = await _userService.GetByIdAsync(userId);
                 if (subject != null && subject.DepartmentId == hodUser?.DepartmentId)
                 {
                     canToggle = true;
                 }
             }
-            else if (User.IsInRole("Lecturer") && document.UploaderId == userId)
+            else if (User.IsInRole("Lecturer") && (document.UploaderId == userId || (subject != null && subject.LecturerId == userId)))
             {
                 canToggle = true;
             }
@@ -329,7 +326,8 @@ namespace RagChatbot.PresentationRazorPage.Pages.Document
 
             if (document == null) return new JsonResult(new { success = false, message = "Document not found." });
 
-            bool canRename = User.IsInRole("Lecturer") && document.UploaderId == userId;
+            var subject = await _subjectService.GetByIdAsync(document.SubjectId);
+            bool canRename = User.IsInRole("Lecturer") && (document.UploaderId == userId || (subject != null && subject.LecturerId == userId));
             if (!canRename)
             {
                 return new JsonResult(new { success = false, message = "Bạn không có quyền đổi tên tài liệu này." });
@@ -399,10 +397,10 @@ namespace RagChatbot.PresentationRazorPage.Pages.Document
                 return new JsonResult(new { success = false, message = "Tài liệu không tồn tại." });
             }
 
-            bool canView = document.UploaderId == userId || User.IsInRole("Admin");
+            var subject = await _subjectService.GetByIdAsync(document.SubjectId);
+            bool canView = document.UploaderId == userId || User.IsInRole("Admin") || (User.IsInRole("Lecturer") && subject != null && subject.LecturerId == userId);
             if (!canView && User.IsInRole("HeadOfDepartment"))
             {
-                var subject = await _subjectService.GetByIdAsync(document.SubjectId);
                 var hodUser = await _userService.GetByIdAsync(userId);
                 if (subject != null && subject.DepartmentId == hodUser?.DepartmentId)
                 {

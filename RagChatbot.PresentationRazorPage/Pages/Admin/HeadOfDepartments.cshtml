@@ -1,4 +1,4 @@
-﻿@page
+@page
 @model RagChatbot.PresentationRazorPage.Pages.Admin.HeadOfDepartmentsModel
 @{
     ViewData["Title"] = "Quản lý Trưởng Bộ môn (HOD)";
@@ -163,7 +163,7 @@
                                                         </form>
                                                     }
                                                     
-                                                    <form asp-page="/Admin/Index" asp-page-handler="DeleteUser" method="post" class="m-0">
+                                                    <form asp-page="/Admin/HeadOfDepartments" asp-page-handler="DeleteUser" method="post" class="m-0">
                                                         <input type="hidden" name="id" value="@user.Id" />
                                                         <button type="submit" 
                                                             onclick="return confirm('Bạn có chắc chắn muốn xóa tài khoản này?');"

@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace RagChatbot.DataAccess.EntityModels
 {
@@ -7,7 +7,9 @@ namespace RagChatbot.DataAccess.EntityModels
     {
         DocumentIssue,   // Lỗi liên quan đến tài liệu học liệu
         ChatIssue,       // Lỗi liên quan đến AI/RAG Chatbot
-        GeneralFeedback  // Góp ý, phản hồi chung hệ thống
+        GeneralFeedback, // Góp ý, phản hồi chung hệ thống
+        AccountIssue,    // Lỗi tài khoản / Premium
+        Other            // Khác
     }
 
     // 2. Định nghĩa trạng thái xử lý của Admin

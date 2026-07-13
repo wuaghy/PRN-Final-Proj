@@ -1,12 +1,12 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using RagChatbot.DataAccess.EntityModels;
+using RagChatbot.Business.DTOs;
 
 namespace RagChatbot.Business.Interfaces
 {
     public interface IAuditLogService
     {
         Task LogAsync(int actorId, string action, string targetObjectId, string details);
-        Task<IEnumerable<AuditLog>> GetAllLogsAsync();
+        Task<IEnumerable<AuditLogDto>> GetAllLogsAsync();
     }
 }

@@ -34,6 +34,11 @@ namespace RagChatbot.PresentationRazorPage.Pages
                 return RedirectToPage("/Auth/Login");
             }
 
+            if (User.IsInRole("Admin"))
+            {
+                return RedirectToPage("/Admin/Index");
+            }
+
             if (User.IsInRole("HeadOfDepartment"))
             {
                 return RedirectToPage("/Document/Index");

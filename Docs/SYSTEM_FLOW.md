@@ -37,7 +37,7 @@ graph TD
         M --> N{Có phải câu chào đơn giản?}
         N -->|Không RAG| P[Bỏ qua Vector Search]
         
-        N -->|RAG| O1[Bypass Rewrite Query]
+        M -->|RAG| O1[Bypass Rewrite Query]
         O1 -->|Giữ nguyên câu hỏi User| O2[Standalone Query]
         O2 --> O3[Gọi AiService.GenerateEmbeddingAsync]
         
@@ -136,7 +136,7 @@ Khi người dùng nhấn chọn một môn học bất kỳ từ danh sách Sid
      ```
      GET /Document/GetSubjectDocuments?subjectId={subjectId}
      ```
-     API trả về danh sách toàn bộ các file tài liệu đã được chỉ mục hóa (indexed) thành công trong môn học đó. Mỗi file đã trải qua quy trình chunking hai lớp bảo vệ: (1) Page Boundary Protection bỏ qua dấu chấm số, (2) `ALPHANUMERICDOTMASK` masking đảm bảo số liệu kế toán nguyên vẹn.
+     API trả về danh sách toàn bộ các file tài liệu đã được chỉ mục hóa (indexed) thành công trong môn học đó.
      * **Sidebar phải (`#docFilterPanel`)** xuất hiện và vẽ danh sách checkbox tương ứng với các file.
      * Mặc định ban đầu, **tất cả** checkbox tài liệu đều được tích chọn (`checked`).
 
@@ -214,9 +214,46 @@ Khi người dùng nhập văn bản vào ô chat và nhấn gửi (hoặc nhấ
 
 ---
 
-## 4. Tóm Lược Các Công Nghệ Trọng Điểm
+## 4. Cơ Chế Giao Tiếp Realtime (SignalR Communication)
 
-1.  **Dữ liệu luân chuyển (DTOs / ViewModels):** Tất cả dữ liệu đi từ Database lên giao diện đều được bọc trong các Data Transfer Objects (DTO) tại Business Layer, và bọc trong ViewModels tại Presentation Layer để bảo mật và tối ưu giao diện.
-2.  **Entity Framework Core & pgvector:** Nóng cốt của hệ thống RAG nằm ở khả năng lưu trữ mảng vector và tính toán khoảng cách (distance) trực tiếp bằng ngôn ngữ SQL thông qua EF Core.
-3.  **SignalR:** Đảm nhận kết nối 2 chiều (Duplex) giúp trải nghiệm chat cực kỳ mượt mà, không bị giật lag khi tải các câu trả lời dài.
-4.  **Kiến trúc N-Tier:** Việc chia tách giúp code cực kỳ gọn gàng. `DocumentProcessingJob` không dính dáng gì đến Controllers. Việc thay đổi AI từ Google sang OpenAI trong tương lai chỉ cần viết lại `AiService` mà không ảnh hưởng tới bất kỳ thành phần nào khác.
+Dự án RagChatbot sử dụng **SignalR** để cung cấp các tính năng thời gian thực (real-time) cho người dùng, chủ yếu hỗ trợ trải nghiệm chat trực tuyến mượt mà và thông báo trạng thái của hệ thống.
+
+### 4.1. Các Hubs hiện có
+Hệ thống hiện tại định nghĩa 2 Hub chính trong thư mục `Hubs` của lớp `PresentationRazorPage`:
+
+#### A. `ChatHub` (`/chatHub`)
+Đây là Hub cốt lõi phục vụ tính năng RAG Chatbot, xử lý toàn bộ luồng giao tiếp giữa người dùng và AI Assistant.
+- **`LoadSubjectHistory(int subjectId)`**: Tải lại lịch sử trò chuyện của người dùng đối với một môn học (Subject) cụ thể.
+- **`SendMessage(string sessionIdStr, int subjectId, string message, List<int>? documentIds)`**: Gửi tin nhắn mới tới AI.
+- **`StopGeneration(string sessionIdStr)`**: Hủy quá trình AI đang sinh câu trả lời bằng cách dùng `CancellationTokenSource`.
+
+**Các Event Client lắng nghe (từ ChatHub):**
+- `SessionLoaded`: Khi lịch sử chat đã tải xong.
+- `SessionCreated`: Khi một phiên chat mới bắt đầu.
+- `ReceiveToken`: Nhận token văn bản dạng stream từ AI.
+- `ReceiveError`: Nhận thông báo lỗi.
+
+#### B. `AppNotificationHub` (`/appNotificationHub`)
+Đây là Hub chung của hệ thống để quản lý và gửi các thông báo toàn cầu tới client, giúp đồng bộ hóa giao diện người dùng theo thời gian thực mà không cần tải lại trang.
+- Server gọi qua `IHubContext<AppNotificationHub>` từ các Background Job hoặc Controller/PageModel để đẩy (push) thông báo.
+
+**Các Event Client lắng nghe (từ AppNotificationHub):**
+- `DocumentListChanged`: Báo cho giao diện quản lý tài liệu tải lại danh sách tài liệu mới nhất (gọi từ `DocumentProcessingJob` hoặc PageModel khi tải lên/xóa/đổi trạng thái).
+- `SubjectListChanged`: Báo cho giao diện quản lý môn học tải lại danh sách môn học mới nhất (gọi từ Admin khi thêm/sửa/vô hiệu hóa môn học).
+
+### 4.2. Cấu hình (Configuration)
+SignalR được đăng ký và map endpoint tại `Program.cs`:
+```csharp
+builder.Services.AddSignalR();
+app.MapHub<RagChatbot.PresentationRazorPage.Hubs.ChatHub>("/chatHub");
+app.MapHub<RagChatbot.PresentationRazorPage.Hubs.AppNotificationHub>("/appNotificationHub");
+```
+
+---
+
+## 5. Tóm Lược Các Công Nghệ Trọng Điểm
+
+1.  **Dữ liệu luân chuyển (DTOs / ViewModels):** Tất cả dữ liệu đi từ Database lên giao diện đều được bọc trong các Data Transfer Objects (DTO) tại Business Layer, và bọc trong ViewModels tại Presentation Layer.
+2.  **Entity Framework Core & pgvector:** Nòng cốt của hệ thống RAG nằm ở khả năng lưu trữ mảng vector và tính toán khoảng cách (distance) thông qua EF Core và PostgreSQL.
+3.  **SignalR:** Đảm nhận kết nối 2 chiều (Duplex) giúp trải nghiệm chat cực kỳ mượt mà.
+4.  **Kiến trúc N-Tier:** Việc chia tách giúp code cực kỳ gọn gàng. Tầng Business chỉ gọi tầng Data Access qua các Repository chứ không tiêm trực tiếp DbContext, bảo toàn tính độc lập và dễ dàng kiểm thử.

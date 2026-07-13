@@ -4,13 +4,19 @@
 
 ## Tính Năng Nổi Bật
 
-- **Quản lý Môn học & Tài liệu:** Tạo môn học và upload PDF/DOCX vào từng môn.
+- **Phân Quyền RBAC Toàn Diện:** Phân chia rõ vai trò giữa Admin (Quản trị hệ thống), Head of Department (Trưởng bộ môn), Lecturer (Giảng viên) và Student (Học sinh).
+- **Quản lý Môn học & Tài liệu:** Hỗ trợ tạo môn học, gán giảng viên phụ trách, và tải lên học liệu PDF/DOCX. Giảng viên chỉ có quyền quản lý tài liệu do mình tải lên.
 - **Xử lý Ngầm (Background Job):** Tài liệu tải lên được tự động trích xuất, chia nhỏ (Local Semantic Chunking) và mã hoá thành vector trong nền. Hệ thống chunking sử dụng thuật toán masking `ALPHANUMERICDOTMASK` để bảo toàn 100% tính toàn vẹn các con số tài chính/kế toán (ví dụ: `43.000`, `10.000.000`).
-- **Vector Search:** Mỗi chunk được embedding thành vector 768 chiều lưu trong PostgreSQL (`pgvector`), tìm kiếm bằng Cosine Similarity với HNSW Index.
-- **Realtime Streaming Chat:** Dùng **SignalR** để stream từng token phản hồi của AI về giao diện (giống ChatGPT).
-- **Trích Dẫn Thông Minh (Citations):** Cuối mỗi câu trả lời, Bot chỉ rõ tên file và số trang đã dùng làm ngữ cảnh.
-- **Lịch sử Chat:** Hệ thống lưu và tải lại lịch sử hội thoại theo từng môn học.
-- \*\*Xem tài lieu: Hệ thống cho phép học sinh xem tài lieu mà giảng viên đã up lên nếu muốn theo dõi chi tiết
+- **Vector Search & RAG Hybrid:** Mỗi chunk được embedding thành vector 768 chiều (`text-embedding-004`) lưu trong PostgreSQL (`pgvector`), tìm kiếm ngữ nghĩa kết hợp với tìm kiếm từ khóa (BM25) và Re-ranking để tối ưu hóa bối cảnh.
+- **Realtime Streaming Chat:** Sử dụng **SignalR** để stream từng token phản hồi của AI thời gian thực về giao diện (giống ChatGPT).
+- **Trích Dẫn Nguồn Minh Bạch (Citations):** Hiển thị chi tiết trích dẫn nguồn ngay dưới câu trả lời của AI (tên hiển thị tài liệu, đoạn tham chiếu), tuyệt đối giấu tên file vật lý và cấu trúc thư mục nội bộ.
+- **Lịch sử Chat:** Lưu trữ hội thoại của học sinh theo từng môn học và tự động lưu trữ định kỳ các phiên chat cũ quá 6 tháng.
+- **Xem Học Liệu Trực Tuyến:** Cho phép học sinh xem trước trực tiếp các tài liệu học tập đang Active mà giảng viên đã tải lên.
+- **Quản lý Cấu hình & Tỷ giá Động (AppSettings):** Cho phép Admin cấu hình tham số chunking và cập nhật tỷ giá quy đổi USD/VND theo thời gian thực trực tiếp trên giao diện.
+- **Nhật ký Kiểm toán (Audit Logs):** Ghi nhận không thể sửa/xóa các hoạt động thay đổi cấu trúc dữ liệu của Admin và Trưởng bộ môn để đảm bảo an ninh hệ thống.
+- **Ý kiến Góp ý & Báo lỗi:** Học sinh có thể gửi báo cáo lỗi tài liệu, chatbot RAG hoặc ý kiến chung cho bộ môn và quản trị viên.
+- **Thanh toán Nâng cấp Premium qua VNPAY:** Hỗ trợ học sinh thanh toán trực tiếp qua VNPAY để nâng cấp tài khoản Premium, không giới hạn lượt chat trong ngày.
+- **Dashboard & Báo cáo Tài chính:** Cung cấp cho Admin và Head of Department cái nhìn trực quan về doanh thu, chi phí API LLM ước tính dựa trên lượng token tiêu thụ, cùng các xu hướng học tập phổ biến.
 
 ## Kiến Trúc Kỹ Thuật
 

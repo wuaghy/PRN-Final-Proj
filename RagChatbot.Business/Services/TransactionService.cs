@@ -2,31 +2,38 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using RagChatbot.Business.Interfaces;
-using RagChatbot.DataAccess.Data;
 using RagChatbot.DataAccess.EntityModels;
+using RagChatbot.DataAccess.Interfaces;
 
 namespace RagChatbot.Business.Services
 {
     public class TransactionService : ITransactionService
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IAppUserRepository _appUserRepository;
+        private readonly IAppSettingRepository _appSettingRepository;
+        private readonly ITransactionRepository _transactionRepository;
 
-        public TransactionService(ApplicationDbContext context)
+        public TransactionService(
+            IAppUserRepository appUserRepository,
+            IAppSettingRepository appSettingRepository,
+            ITransactionRepository transactionRepository)
         {
-            _context = context;
+            _appUserRepository = appUserRepository;
+            _appSettingRepository = appSettingRepository;
+            _transactionRepository = transactionRepository;
         }
 
         public async Task ProcessPremiumUpgradeAsync(int userId, decimal amountVnd)
         {
-            var user = await _context.AppUsers.FindAsync(userId);
+            var user = await _appUserRepository.GetByIdAsync(userId);
             if (user != null)
             {
                 // Cập nhật subscription của user thành Premium
                 user.Subscription = AppUser.SubscriptionType.Premium;
-                _context.AppUsers.Update(user);
+                _appUserRepository.Update(user);
 
                 // Lấy tỷ giá USD quy đổi hiện tại từ AppSettings
-                var usdRateSetting = await _context.AppSettings.FirstOrDefaultAsync(s => s.Key == "UsdVndRate");
+                var usdRateSetting = await _appSettingRepository.Query().FirstOrDefaultAsync(s => s.Key == "UsdVndRate");
                 decimal currentUsdRate = decimal.TryParse(usdRateSetting?.Value, out var parsedRate) ? parsedRate : 25000m;
 
                 // Tiến hành ghi log giao dịch
@@ -39,8 +46,10 @@ namespace RagChatbot.Business.Services
                     UsdVndRate = currentUsdRate
                 };
 
-                _context.Transactions.Add(transaction);
-                await _context.SaveChangesAsync();
+                await _transactionRepository.AddAsync(transaction);
+                
+                await _appUserRepository.SaveChangesAsync();
+                await _transactionRepository.SaveChangesAsync();
             }
         }
     }

@@ -1,23 +1,26 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using RagChatbot.Business.DTOs;
 using RagChatbot.Business.Interfaces;
-using RagChatbot.DataAccess.Data;
 using RagChatbot.DataAccess.EntityModels;
+using RagChatbot.DataAccess.Interfaces;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace RagChatbot.Business.Services
 {
     public class ContactService : IContactService
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IContactMessageRepository _contactMessageRepository;
 
-        public ContactService(ApplicationDbContext context)
+        public ContactService(IContactMessageRepository contactMessageRepository)
         {
-            _context = context;
+            _contactMessageRepository = contactMessageRepository;
         }
 
         public async Task<IEnumerable<ContactMessageDto>> GetAllContactMessagesAsync()
         {
-            var messages = await _context.ContactMessages
+            var messages = await _contactMessageRepository.Query()
                 .Include(c => c.User)
                 .OrderByDescending(c => c.CreatedAt)
                 .ToListAsync();
@@ -26,12 +29,12 @@ namespace RagChatbot.Business.Services
 
         public async Task<int> GetPendingCountAsync()
         {
-            return await _context.ContactMessages.CountAsync(c => c.Status == ContactStatus.Pending);
+            return await _contactMessageRepository.Query().CountAsync(c => c.Status == ContactStatus.Pending);
         }
 
         public async Task<ContactMessageDto?> GetByIdAsync(int id)
         {
-            var message = await _context.ContactMessages
+            var message = await _contactMessageRepository.Query()
                 .Include(c => c.User)
                 .FirstOrDefaultAsync(c => c.Id == id);
             return message == null ? null : MapToDto(message);
@@ -48,27 +51,28 @@ namespace RagChatbot.Business.Services
                 RelatedId = contactDto.RelatedId,
                 CreatedAt = System.DateTime.UtcNow
             };
-            _context.ContactMessages.Add(message);
-            await _context.SaveChangesAsync();
+            await _contactMessageRepository.AddAsync(message);
+            await _contactMessageRepository.SaveChangesAsync();
         }
 
         public async Task UpdateContactStatusAsync(int id, string status)
         {
-            var message = await _context.ContactMessages.FindAsync(id);
+            var message = await _contactMessageRepository.GetByIdAsync(id);
             if (message != null)
             {
                 message.Status = System.Enum.Parse<ContactStatus>(status);
-                await _context.SaveChangesAsync();
+                _contactMessageRepository.Update(message);
+                await _contactMessageRepository.SaveChangesAsync();
             }
         }
 
         public async Task DeleteContactMessageAsync(int id)
         {
-            var message = await _context.ContactMessages.FindAsync(id);
+            var message = await _contactMessageRepository.GetByIdAsync(id);
             if (message != null)
             {
-                _context.ContactMessages.Remove(message);
-                await _context.SaveChangesAsync();
+                _contactMessageRepository.Remove(message);
+                await _contactMessageRepository.SaveChangesAsync();
             }
         }
 

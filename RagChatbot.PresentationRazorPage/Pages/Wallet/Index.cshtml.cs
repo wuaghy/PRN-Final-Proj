@@ -11,14 +11,23 @@ namespace RagChatbot.PresentationRazorPage.Pages.Wallet
     public class IndexModel : PageModel
     {
         private readonly ITransactionService _transactionService;
+        private readonly IAppUserService _appUserService;
 
-        public IndexModel(ITransactionService transactionService)
+        public IndexModel(ITransactionService transactionService, IAppUserService appUserService)
         {
             _transactionService = transactionService;
+            _appUserService = appUserService;
         }
 
-        public void OnGet()
+        public RagChatbot.Business.DTOs.AppUserDto? UserStats { get; set; }
+
+        public async Task OnGetAsync()
         {
+            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (int.TryParse(userIdStr, out int uId))
+            {
+                UserStats = await _appUserService.GetUserTokenStatsAsync(uId);
+            }
         }
 
         public IActionResult OnPostPayPremium()

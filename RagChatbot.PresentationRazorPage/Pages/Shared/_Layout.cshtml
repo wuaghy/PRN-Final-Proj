@@ -206,18 +206,18 @@
                     {
                         <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-2">Hệ thống</div>
                         
-                        var isDashboard = currentPath.StartsWith("/Admin/Dashboard", StringComparison.OrdinalIgnoreCase);
-                        <a asp-page="/Admin/Dashboard" class="nav-link flex items-center gap-2.5 py-2.5 rounded-xl text-sm font-medium transition-all @(isDashboard ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold border-l-4 border-emerald-500 pl-2" : "text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 pl-3")">
-                            <i class="fa-solid fa-chart-pie w-4"></i> Dashboard
+                        var isDashboard = currentPath.Equals("/Admin", StringComparison.OrdinalIgnoreCase) || currentPath.Equals("/Admin/Index", StringComparison.OrdinalIgnoreCase);
+                        <a asp-page="/Admin/Index" class="nav-link flex items-center gap-2.5 py-2.5 rounded-xl text-sm font-medium transition-all @(isDashboard ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold border-l-4 border-emerald-500 pl-2" : "text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 pl-3")">
+                            <i class="fa-solid fa-chart-pie w-4"></i> Dashboard Chung
                         </a>
 
                         var isFinance = currentPath.StartsWith("/Admin/FinancialDashboard", StringComparison.OrdinalIgnoreCase);
                         <a asp-page="/Admin/FinancialDashboard" class="nav-link flex items-center gap-2.5 py-2.5 rounded-xl text-sm font-medium transition-all @(isFinance ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold border-l-4 border-emerald-500 pl-2" : "text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 pl-3")">
-                            <i class="fa-solid fa-wallet w-4"></i> Hạ tầng AI
+                            <i class="fa-solid fa-wallet w-4"></i> Báo cáo Tài chính AI
                         </a>
 
-                        var isUsers = currentPath.Equals("/Admin", StringComparison.OrdinalIgnoreCase) || currentPath.Equals("/Admin/Index", StringComparison.OrdinalIgnoreCase);
-                        <a asp-page="/Admin/Index" class="nav-link flex items-center gap-2.5 py-2.5 rounded-xl text-sm font-medium transition-all @(isUsers ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold border-l-4 border-emerald-500 pl-2" : "text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 pl-3")">
+                        var isUsers = currentPath.StartsWith("/Admin/Student", StringComparison.OrdinalIgnoreCase);
+                        <a asp-page="/Admin/Student" class="nav-link flex items-center gap-2.5 py-2.5 rounded-xl text-sm font-medium transition-all @(isUsers ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold border-l-4 border-emerald-500 pl-2" : "text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 pl-3")">
                             <i class="fa-solid fa-user-graduate w-4"></i> QL Học sinh
                         </a>
 
@@ -249,6 +249,11 @@
                         var isChunking = currentPath.StartsWith("/Admin/ChunkingConfig", StringComparison.OrdinalIgnoreCase);
                         <a asp-page="/Admin/ChunkingConfig" class="nav-link flex items-center gap-2.5 py-2.5 rounded-xl text-sm font-medium transition-all @(isChunking ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold border-l-4 border-emerald-500 pl-2" : "text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 pl-3")">
                             <i class="fa-solid fa-layer-group w-4"></i> Cấu hình Chunking
+                        </a>
+
+                        var isSettings = currentPath.StartsWith("/Admin/Settings", StringComparison.OrdinalIgnoreCase);
+                        <a asp-page="/Admin/Settings" class="nav-link flex items-center gap-2.5 py-2.5 rounded-xl text-sm font-medium transition-all @(isSettings ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold border-l-4 border-emerald-500 pl-2" : "text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 pl-3")">
+                            <i class="fa-solid fa-gear w-4"></i> Cấu hình Giá & API
                         </a>
 
                         var isContacts = currentPath.StartsWith("/Admin/Contacts", StringComparison.OrdinalIgnoreCase);

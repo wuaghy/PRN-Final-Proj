@@ -13,10 +13,12 @@ namespace RagChatbot.Business.Services
     public class FinancialService : IFinancialService
     {
         private readonly ApplicationDbContext _context;
+        private readonly ISettingService _settingService;
 
-        public FinancialService(ApplicationDbContext context)
+        public FinancialService(ApplicationDbContext context, ISettingService settingService)
         {
             _context = context;
+            _settingService = settingService;
         }
 
         public async Task<FinancialDashboardDto> GetDashboardDataAsync()
@@ -35,9 +37,9 @@ namespace RagChatbot.Business.Services
             dto.TotalInputTokens = chatMetrics.Sum(m => (long)(m.TokenIn ?? 0));
             dto.TotalOutputTokens = chatMetrics.Sum(m => (long)(m.TokenOut ?? 0));
 
-            // Giá Gemini 1.5 Flash: Input=$0.075/1M tokens, Output=$0.30/1M tokens
-            decimal inputCostRate = 0.075m / 1000000m;
-            decimal outputCostRate = 0.30m / 1000000m;
+            var priceConfig = await _settingService.GetPricingConfigAsync();
+            decimal inputCostRate = priceConfig.TokenInCostPerMillion / 1000000m;
+            decimal outputCostRate = priceConfig.TokenOutCostPerMillion / 1000000m;
 
             dto.TotalCostUsd = (dto.TotalInputTokens * inputCostRate) + (dto.TotalOutputTokens * outputCostRate);
 
@@ -179,7 +181,7 @@ namespace RagChatbot.Business.Services
                 .ToListAsync();
 
             dto.DailyTrends = new List<DailyUsageDto>();
-            for (int i = 0; i < 7; i++)
+            for (int i = 6; i >= 0; i--)
             {
                 var date = sevenDaysAgo.AddDays(i);
                 var match = dailyUsageData.FirstOrDefault(d => d.Date == date);
@@ -193,6 +195,40 @@ namespace RagChatbot.Business.Services
             }
 
             return dto;
+        }
+
+        public async Task<IEnumerable<AppUserDto>> GetTopTokenConsumersAsync(int topCount = 10)
+        {
+            var topStats = await _context.ChatMessages
+                .Where(m => m.Session != null && m.Session.User != null)
+                .GroupBy(m => new { m.Session.UserId, m.Session.User.Email, m.Session.User.FirstName, m.Session.User.LastName })
+                .Select(g => new {
+                    UserId = g.Key.UserId,
+                    Email = g.Key.Email,
+                    FirstName = g.Key.FirstName,
+                    LastName = g.Key.LastName,
+                    TokenIn = g.Sum(m => (long)(m.TokenIn ?? 0)),
+                    TokenOut = g.Sum(m => (long)(m.TokenOut ?? 0)),
+                    TotalTokens = g.Sum(m => (long)(m.TokenIn ?? 0)) + g.Sum(m => (long)(m.TokenOut ?? 0))
+                })
+                .OrderByDescending(x => x.TotalTokens)
+                .Take(topCount)
+                .ToListAsync();
+
+            var priceConfig = await _settingService.GetPricingConfigAsync();
+            decimal inRate = priceConfig.TokenInCostPerMillion / 1000000m;
+            decimal outRate = priceConfig.TokenOutCostPerMillion / 1000000m;
+
+            return topStats.Select(s => new AppUserDto
+            {
+                Id = s.UserId,
+                Email = s.Email,
+                FirstName = s.FirstName,
+                LastName = s.LastName,
+                TokenIn = s.TokenIn,
+                TokenOut = s.TokenOut,
+                CostVnd = (s.TokenIn * inRate + s.TokenOut * outRate) * priceConfig.UsdVndRate
+            });
         }
     }
 }

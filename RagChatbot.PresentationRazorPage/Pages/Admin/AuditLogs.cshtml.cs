@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using RagChatbot.Business.Interfaces;
-using RagChatbot.DataAccess.EntityModels;
+using RagChatbot.Business.DTOs;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -17,7 +17,7 @@ namespace RagChatbot.PresentationRazorPage.Pages.Admin
             _auditLogService = auditLogService;
         }
 
-        public IEnumerable<AuditLog> AuditLogs { get; set; } = new List<AuditLog>();
+        public IEnumerable<AuditLogDto> AuditLogs { get; set; } = new List<AuditLogDto>();
 
         public async Task OnGetAsync()
         {

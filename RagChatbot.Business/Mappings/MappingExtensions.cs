@@ -168,5 +168,28 @@ namespace RagChatbot.Business.Mappings
                 TokenOutCostPerMillion = dto.TokenOutCostPerMillion
             };
         }
+
+        // AuditLog Mappings
+        public static AuditLogDto? ToDto(this AuditLog? entity)
+        {
+            if (entity == null) return null;
+            return new AuditLogDto
+            {
+                Id = entity.Id,
+                ActorId = entity.ActorId,
+                Timestamp = entity.Timestamp,
+                Action = entity.Action,
+                TargetObjectId = entity.TargetObjectId,
+                Details = entity.Details,
+                Actor = entity.Actor != null ? new AppUserDto
+                {
+                    Id = entity.Actor.Id,
+                    Email = entity.Actor.Email,
+                    FirstName = entity.Actor.FirstName,
+                    LastName = entity.Actor.LastName,
+                    Role = entity.Actor.Role
+                } : null
+            };
+        }
     }
 }

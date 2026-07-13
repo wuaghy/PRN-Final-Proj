@@ -4,20 +4,22 @@
 
 Dự án sử dụng **Entity Framework Core** với **PostgreSQL** (có hỗ trợ extension `pgvector` cho vector search). Tất cả entity models nằm trong project `RagChatbot.DataAccess`, namespace `RagChatbot.DataAccess.EntityModels`.
 
-Hệ thống hiện tại gồm **10 entity** chính:
+Hệ thống hiện tại gồm **12 thực thể (entities)** chính:
 
 | # | Entity | Mô tả | File |
 |---|--------|--------|------|
-| 1 | `AppUser` | Người dùng hệ thống | `EntityModels/AppUser.cs` |
-| 2 | `Department` | Phòng ban / Khoa | `EntityModels/Department.cs` |
-| 3 | `HodTerm` | Nhiệm kỳ Trưởng khoa (Head of Department) | `EntityModels/HodTerm.cs` |
-| 4 | `Subject` | Môn học / Chủ đề | `EntityModels/Subject.cs` |
-| 5 | `Document` | Tài liệu được upload | `EntityModels/Document.cs` |
-| 6 | `DocumentChunk` | Đoạn văn bản đã được chia nhỏ + embedding | `EntityModels/DocumentChunk.cs` |
-| 7 | `ChatSession` | Phiên hội thoại | `EntityModels/ChatSession.cs` |
-| 8 | `ChatMessage` | Tin nhắn trong phiên hội thoại | `EntityModels/ChatMessage.cs` |
-| 9 | `AuditLog` | Nhật ký hệ thống | `EntityModels/AuditLog.cs` |
-| 10 | `ContactMessage` | Yêu cầu hỗ trợ, liên hệ | `EntityModels/ContactMessage.cs` |
+| 1 | `AppUser` | Người dùng hệ thống (Admin, HeadOfDepartment, Lecturer, Student) | [AppUser.cs](file:///RagChatbot.DataAccess/EntityModels/AppUser.cs) |
+| 2 | `Department` | Bộ môn / Khoa | [Department.cs](file:///RagChatbot.DataAccess/EntityModels/Department.cs) |
+| 3 | `HodTerm` | Nhiệm kỳ Trưởng bộ môn (Head of Department) | [HodTerm.cs](file:///RagChatbot.DataAccess/EntityModels/HodTerm.cs) |
+| 4 | `Subject` | Môn học / Học phần | [Subject.cs](file:///RagChatbot.DataAccess/EntityModels/Subject.cs) |
+| 5 | `Document` | Tài liệu học tập được upload | [Document.cs](file:///RagChatbot.DataAccess/EntityModels/Document.cs) |
+| 6 | `DocumentChunk` | Đoạn văn bản đã được chia nhỏ + embedding | [DocumentChunk.cs](file:///RagChatbot.DataAccess/EntityModels/DocumentChunk.cs) |
+| 7 | `ChatSession` | Phiên hội thoại | [ChatSession.cs](file:///RagChatbot.DataAccess/EntityModels/ChatSession.cs) |
+| 8 | `ChatMessage` | Tin nhắn trong phiên hội thoại | [ChatMessage.cs](file:///RagChatbot.DataAccess/EntityModels/ChatMessage.cs) |
+| 9 | `AuditLog` | Nhật ký hệ thống | [AuditLog.cs](file:///RagChatbot.DataAccess/EntityModels/AuditLog.cs) |
+| 10 | `ContactMessage` | Yêu cầu hỗ trợ, liên hệ hoặc báo cáo | [ContactMessage.cs](file:///RagChatbot.DataAccess/EntityModels/ContactMessage.cs) |
+| 11 | `AppSetting` | Cấu hình tham số hệ thống dạng Key-Value | [AppSetting.cs](file:///RagChatbot.DataAccess/EntityModels/AppSetting.cs) |
+| 12 | `Transaction` | Lịch sử giao dịch thanh toán nâng cấp tài khoản | [Transaction.cs](file:///RagChatbot.DataAccess/EntityModels/Transaction.cs) |
 
 ---
 
@@ -31,6 +33,7 @@ erDiagram
     Department ||--o{ HodTerm : "được phụ trách bởi"
     AppUser ||--o{ AuditLog : "thực hiện"
     AppUser ||--o{ ContactMessage : "gửi"
+    AppUser ||--o{ Transaction : "thực hiện"
     Subject ||--o{ Document : "chứa"
     Subject ||--o{ ChatSession : "có"
     Document ||--o{ DocumentChunk : "chia thành"
@@ -113,6 +116,21 @@ erDiagram
         string Type
         string Status
     }
+
+    AppSetting {
+        int Id PK
+        string Key UK
+        string Value
+    }
+
+    Transaction {
+        int Id PK
+        int UserId FK
+        decimal Amount
+        string Type
+        DateTime CreatedAt
+        decimal UsdVndRate
+    }
 ```
 
 ---
@@ -123,7 +141,7 @@ erDiagram
 
 > Đại diện cho người dùng trong hệ thống (Giảng viên, Sinh viên, Admin).
 
-**File:** [`AppUser.cs`](file:///d:/Education/ChatBotRag_New/ChatBotRag/ChatBotRagRazorPage/RagChatbot.DataAccess/EntityModels/AppUser.cs)
+**File:** [AppUser.cs](file:///RagChatbot.DataAccess/EntityModels/AppUser.cs)
 
 | Property | Kiểu dữ liệu | Mô tả |
 |----------|---------------|--------|
@@ -132,7 +150,7 @@ erDiagram
 | `PasswordHash` | `string` | Mật khẩu đã mã hóa |
 | `FirstName` | `string` | Tên người dùng |
 | `LastName` | `string` | Họ người dùng |
-| `Role` | `string` | Vai trò (Student, Teacher, Admin...) |
+| `Role` | `string` | Vai trò (Student, Lecturer, HeadOfDepartment, Admin) |
 | `DepartmentId` | `int?` | Phòng ban (FK tới `Department`) |
 | `Subscription` | `SubscriptionType` | Loại đăng ký (Free, Premium) |
 | `IsActive` | `bool` | Trạng thái hoạt động |
@@ -148,7 +166,7 @@ erDiagram
 
 > Đại diện cho Phòng ban / Khoa trong trường.
 
-**File:** [`Department.cs`](file:///d:/Education/ChatBotRag_New/ChatBotRag/ChatBotRagRazorPage/RagChatbot.DataAccess/EntityModels/Department.cs)
+**File:** [Department.cs](file:///RagChatbot.DataAccess/EntityModels/Department.cs)
 
 | Property | Kiểu dữ liệu | Mô tả |
 |----------|---------------|--------|
@@ -165,9 +183,9 @@ erDiagram
 
 ### 3. HodTerm
 
-> Nhiệm kỳ Trưởng khoa (Head of Department) cho biết ai là Trưởng khoa của Khoa nào trong thời gian nào.
+> Nhiệm kỳ Trưởng bộ môn (Head of Department) cho biết ai là Trưởng bộ môn của Bộ môn nào trong thời gian nào.
 
-**File:** [`HodTerm.cs`](file:///d:/Education/ChatBotRag_New/ChatBotRag/ChatBotRagRazorPage/RagChatbot.DataAccess/EntityModels/HodTerm.cs)
+**File:** [HodTerm.cs](file:///RagChatbot.DataAccess/EntityModels/HodTerm.cs)
 
 | Property | Kiểu dữ liệu | Mô tả |
 |----------|---------------|--------|
@@ -183,7 +201,7 @@ erDiagram
 
 > Đại diện cho một môn học / chủ đề được quản lý bởi một Department.
 
-**File:** [`Subject.cs`](file:///d:/Education/ChatBotRag_New/ChatBotRag/ChatBotRagRazorPage/RagChatbot.DataAccess/EntityModels/Subject.cs)
+**File:** [Subject.cs](file:///RagChatbot.DataAccess/EntityModels/Subject.cs)
 
 | Property | Kiểu dữ liệu | Mô tả |
 |----------|---------------|--------|
@@ -204,7 +222,7 @@ erDiagram
 
 > Đại diện cho một tài liệu được upload lên hệ thống, thuộc về một Subject.
 
-**File:** [`Document.cs`](file:///d:/Education/ChatBotRag_New/ChatBotRag/ChatBotRagRazorPage/RagChatbot.DataAccess/EntityModels/Document.cs)
+**File:** [Document.cs](file:///RagChatbot.DataAccess/EntityModels/Document.cs)
 
 | Property | Kiểu dữ liệu | Mô tả |
 |----------|---------------|--------|
@@ -224,7 +242,7 @@ erDiagram
 
 > Đoạn văn bản được chia nhỏ từ Document, chứa vector embedding cho RAG.
 
-**File:** [`DocumentChunk.cs`](file:///d:/Education/ChatBotRag_New/ChatBotRag/ChatBotRagRazorPage/RagChatbot.DataAccess/EntityModels/DocumentChunk.cs)
+**File:** [DocumentChunk.cs](file:///RagChatbot.DataAccess/EntityModels/DocumentChunk.cs)
 
 | Property | Kiểu dữ liệu | Mô tả |
 |----------|---------------|--------|
@@ -232,7 +250,7 @@ erDiagram
 | `DocumentId` | `int` | FK tới `Document` |
 | `Content` | `string` | Nội dung văn bản |
 | `PageNumber` | `int?` | Số trang (nếu có) |
-| `Embedding` | `Vector?` | Embedding vector (pgvector) |
+| `Embedding` | `Vector?` | Embedding vector (pgvector 768 chiều) |
 
 ---
 
@@ -240,7 +258,7 @@ erDiagram
 
 > Phiên hội thoại giữa user và chatbot trong một Subject cụ thể.
 
-**File:** [`ChatSession.cs`](file:///d:/Education/ChatBotRag_New/ChatBotRag/ChatBotRagRazorPage/RagChatbot.DataAccess/EntityModels/ChatSession.cs)
+**File:** [ChatSession.cs](file:///RagChatbot.DataAccess/EntityModels/ChatSession.cs)
 
 | Property | Kiểu dữ liệu | Mô tả |
 |----------|---------------|--------|
@@ -258,7 +276,7 @@ erDiagram
 
 > Tin nhắn chi tiết trong một phiên hội thoại (người dùng và bot).
 
-**File:** [`ChatMessage.cs`](file:///d:/Education/ChatBotRag_New/ChatBotRag/ChatBotRagRazorPage/RagChatbot.DataAccess/EntityModels/ChatMessage.cs)
+**File:** [ChatMessage.cs](file:///RagChatbot.DataAccess/EntityModels/ChatMessage.cs)
 
 | Property | Kiểu dữ liệu | Mô tả |
 |----------|---------------|--------|
@@ -272,9 +290,9 @@ erDiagram
 
 ### 9. AuditLog
 
-> Ghi log lại các hành động quan trọng trên hệ thống.
+> Ghi log lại các hành động quan trọng trên hệ thống của Admin và HeadOfDepartment.
 
-**File:** [`AuditLog.cs`](file:///d:/Education/ChatBotRag_New/ChatBotRag/ChatBotRagRazorPage/RagChatbot.DataAccess/EntityModels/AuditLog.cs)
+**File:** [AuditLog.cs](file:///RagChatbot.DataAccess/EntityModels/AuditLog.cs)
 
 | Property | Kiểu dữ liệu | Mô tả |
 |----------|---------------|--------|
@@ -290,7 +308,7 @@ erDiagram
 
 > Ghi nhận các yêu cầu hỗ trợ (Support) hoặc báo lỗi từ học sinh.
 
-**File:** [`ContactMessage.cs`](file:///d:/Education/ChatBotRag_New/ChatBotRag/ChatBotRagRazorPage/RagChatbot.DataAccess/EntityModels/ContactMessage.cs)
+**File:** [ContactMessage.cs](file:///RagChatbot.DataAccess/EntityModels/ContactMessage.cs)
 
 | Property | Kiểu dữ liệu | Mô tả |
 |----------|---------------|--------|
@@ -300,6 +318,37 @@ erDiagram
 | `Type` | `ContactType` | Loại (DocumentIssue, ChatIssue, GeneralFeedback) |
 | `Status` | `ContactStatus` | Trạng thái (Pending, Processing, Resolved) |
 | `RelatedId` | `int?` | ID liên quan (nếu có lỗi cụ thể) |
+
+---
+
+### 11. AppSetting
+
+> Cấu hình tham số hệ thống dạng Key-Value được lưu trữ trong database để thay đổi runtime không cần sửa code (ví dụ: cấu hình chunking, tỷ giá USD/VND...).
+
+**File:** [AppSetting.cs](file:///RagChatbot.DataAccess/EntityModels/AppSetting.cs)
+
+| Property | Kiểu dữ liệu | Mô tả |
+|----------|---------------|--------|
+| `Id` | `int` | Khóa chính |
+| `Key` | `string` | Tên khóa cấu hình (Unique) |
+| `Value` | `string` | Giá trị cấu hình |
+
+---
+
+### 12. Transaction
+
+> Lịch sử giao dịch thanh toán nâng cấp tài khoản của học sinh qua VNPAY.
+
+**File:** [Transaction.cs](file:///RagChatbot.DataAccess/EntityModels/Transaction.cs)
+
+| Property | Kiểu dữ liệu | Mô tả |
+|----------|---------------|--------|
+| `Id` | `int` | Khóa chính |
+| `UserId` | `int` | ID người dùng thực hiện (FK tới `AppUser`) |
+| `Amount` | `decimal` | Số tiền thanh toán (VND) |
+| `Type` | `string` | Loại giao dịch (mặc định: "Premium") |
+| `CreatedAt` | `DateTime` | Thời gian giao dịch |
+| `UsdVndRate` | `decimal` | Tỷ giá quy đổi USD/VND tại thời điểm giao dịch |
 
 ---
 
@@ -316,3 +365,4 @@ erDiagram
 | `ChatSession` → `ChatMessage` | One-to-Many | `ChatMessage.SessionId` |
 | `AppUser` → `AuditLog` | One-to-Many | `AuditLog.ActorId` |
 | `AppUser` → `ContactMessage` | One-to-Many | `ContactMessage.UserId` |
+| `AppUser` → `Transaction` | One-to-Many | `Transaction.UserId` |

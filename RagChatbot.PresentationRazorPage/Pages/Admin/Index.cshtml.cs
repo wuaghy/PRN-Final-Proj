@@ -85,14 +85,14 @@ namespace RagChatbot.PresentationRazorPage.Pages.Admin
             if (document == null)
             {
                 TempData["Error"] = "Không tìm thấy thông tin tài liệu trên hệ thống.";
-                return RedirectToPage("/Admin/Dashboard");
+                return RedirectToPage("/Admin/Index");
             }
 
             string rawPath = document.FilePath;
             if (string.IsNullOrEmpty(rawPath))
             {
                 TempData["Error"] = "Tài liệu này không có thông tin FilePath trong cơ sở dữ liệu.";
-                return RedirectToPage("/Admin/Dashboard");
+                return RedirectToPage("/Admin/Index");
             }
 
             string fileNameOnDisk = rawPath;
@@ -135,7 +135,7 @@ namespace RagChatbot.PresentationRazorPage.Pages.Admin
             {
                 string searchedLocations = string.Join(" | ", possiblePaths);
                 TempData["Error"] = $"Không tìm thấy file thực tế trên ổ đĩa! Code đã tìm kiếm kỹ tại các vị trí sau nhưng đều trống không: [{searchedLocations}]. Vui lòng kiểm tra lại file hoặc logic Upload.";
-                return RedirectToPage("/Admin/Dashboard");
+                return RedirectToPage("/Admin/Index");
             }
 
             var provider = new FileExtensionContentTypeProvider();

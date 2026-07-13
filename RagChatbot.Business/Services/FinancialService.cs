@@ -5,19 +5,33 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using RagChatbot.Business.DTOs;
 using RagChatbot.Business.Interfaces;
-using RagChatbot.DataAccess.Data;
 using RagChatbot.DataAccess.EntityModels;
+using RagChatbot.DataAccess.Interfaces;
 
 namespace RagChatbot.Business.Services
 {
     public class FinancialService : IFinancialService
     {
-        private readonly ApplicationDbContext _context;
+        private readonly ITransactionRepository _transactionRepository;
+        private readonly IChatMessageRepository _chatMessageRepository;
+        private readonly IChatSessionRepository _chatSessionRepository;
+        private readonly IContactMessageRepository _contactMessageRepository;
+        private readonly IAppUserRepository _appUserRepository;
         private readonly ISettingService _settingService;
 
-        public FinancialService(ApplicationDbContext context, ISettingService settingService)
+        public FinancialService(
+            ITransactionRepository transactionRepository,
+            IChatMessageRepository chatMessageRepository,
+            IChatSessionRepository chatSessionRepository,
+            IContactMessageRepository contactMessageRepository,
+            IAppUserRepository appUserRepository,
+            ISettingService settingService)
         {
-            _context = context;
+            _transactionRepository = transactionRepository;
+            _chatMessageRepository = chatMessageRepository;
+            _chatSessionRepository = chatSessionRepository;
+            _contactMessageRepository = contactMessageRepository;
+            _appUserRepository = appUserRepository;
             _settingService = settingService;
         }
 
@@ -26,10 +40,10 @@ namespace RagChatbot.Business.Services
             var dto = new FinancialDashboardDto();
 
             // 1. Tính tổng doanh thu từ VNPAY
-            dto.TotalRevenueVnd = await _context.Transactions.SumAsync(t => t.Amount);
+            dto.TotalRevenueVnd = await _transactionRepository.Query().SumAsync(t => t.Amount);
 
             // 2. Thống kê lượng Token tiêu thụ từ ChatMessage
-            var chatMetrics = await _context.ChatMessages
+            var chatMetrics = await _chatMessageRepository.Query()
                 .Where(m => m.Role == "assistant" && (m.TokenIn != null || m.TokenOut != null))
                 .Select(m => new { m.TokenIn, m.TokenOut, m.UsdRate, m.TokenInCostPerMillion, m.TokenOutCostPerMillion })
                 .ToListAsync();
@@ -63,7 +77,7 @@ namespace RagChatbot.Business.Services
             dto.NetProfitVnd = dto.TotalRevenueVnd - dto.TotalCostVnd;
 
             // 4. Lấy danh sách 10 giao dịch gần nhất
-            dto.RecentTransactions = await _context.Transactions
+            dto.RecentTransactions = await _transactionRepository.Query()
                 .Include(t => t.User)
                 .OrderByDescending(t => t.CreatedAt)
                 .Take(10)
@@ -77,7 +91,7 @@ namespace RagChatbot.Business.Services
                 .ToListAsync();
 
             // 5. Thống kê Top Môn học hoạt động năng nổ nhất (dựa trên số câu hỏi của user)
-            var subjectMetrics = await _context.ChatSessions
+            var subjectMetrics = await _chatSessionRepository.Query()
                 .Include(s => s.Subject)
                 .Select(s => new
                 {
@@ -102,7 +116,7 @@ namespace RagChatbot.Business.Services
                 .ToList();
 
             // 6. Thống kê Top Học liệu hữu ích được AI trích dẫn nhiều nhất
-            var assistantMessages = await _context.ChatMessages
+            var assistantMessages = await _chatMessageRepository.Query()
                 .Where(m => m.Role == "assistant" && !string.IsNullOrEmpty(m.Citations) && m.Citations != "[]")
                 .Select(m => m.Citations!)
                 .ToListAsync();
@@ -144,7 +158,7 @@ namespace RagChatbot.Business.Services
                 .ToList();
 
             // 7. Thống kê Phân loại Ý kiến góp ý học sinh (ContactMessages)
-            var contactGroups = await _context.ContactMessages
+            var contactGroups = await _contactMessageRepository.Query()
                 .GroupBy(c => c.Type)
                 .Select(g => new
                 {
@@ -170,13 +184,13 @@ namespace RagChatbot.Business.Services
             .ToList();
 
             // 8. Tỷ lệ chuyển đổi Premium
-            dto.TotalStudentsCount = await _context.AppUsers.CountAsync(u => u.Role == "Student");
-            dto.PremiumStudentsCount = await _context.AppUsers.CountAsync(u => u.Role == "Student" && u.Subscription == AppUser.SubscriptionType.Premium);
+            dto.TotalStudentsCount = await _appUserRepository.Query().CountAsync(u => u.Role == "Student");
+            dto.PremiumStudentsCount = await _appUserRepository.Query().CountAsync(u => u.Role == "Student" && u.Subscription == AppUser.SubscriptionType.Premium);
             dto.PremiumConversionRate = dto.TotalStudentsCount > 0 ? (double)dto.PremiumStudentsCount * 100.0 / dto.TotalStudentsCount : 0.0;
 
             // 9. Biến động Token & Lượt chat theo ngày (7 ngày gần nhất)
             var sevenDaysAgo = DateTime.UtcNow.Date.AddDays(-6);
-            var dailyUsageData = await _context.ChatMessages
+            var dailyUsageData = await _chatMessageRepository.Query()
                 .Where(m => m.Role == "assistant" && m.Timestamp >= sevenDaysAgo && (m.TokenIn != null || m.TokenOut != null))
                 .GroupBy(m => m.Timestamp.Date)
                 .Select(g => new
@@ -212,7 +226,7 @@ namespace RagChatbot.Business.Services
             decimal defaultOutRate = priceConfig.TokenOutCostPerMillion;
             decimal defaultUsdRate = priceConfig.UsdVndRate;
 
-            var topStats = await _context.ChatMessages
+            var topStats = await _chatMessageRepository.Query()
                 .Where(m => m.Session != null && m.Session.User != null)
                 .GroupBy(m => new { m.Session.UserId, m.Session.User.Email, m.Session.User.FirstName, m.Session.User.LastName })
                 .Select(g => new {

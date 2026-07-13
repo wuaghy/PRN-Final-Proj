@@ -26,7 +26,8 @@ namespace RagChatbot.PresentationRazorPage.Pages.Wallet
             string vnp_Url = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
             string vnp_TmnCode = "QGEPANHQ";
             string vnp_HashSecret = "INOS733PMZQZR8KO4EH5VG8L0TKPRQ66";
-            string vnp_ReturnUrl = "https://localhost:7030/Wallet?handler=VnpayReturn";
+            string baseUrl = $"{Request.Scheme}://{Request.Host}";
+            string vnp_ReturnUrl = $"{baseUrl}/Wallet?handler=VnpayReturn";
 
             var vnpay = new VnPayLibrary();
 

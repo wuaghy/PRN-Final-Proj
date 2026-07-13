@@ -1,34 +1,45 @@
+using System;
+using System.Security.Claims;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using RagChatbot.Business.Interfaces;
 using RagChatbot.PresentationRazorPage.Helpers;
-using System.Security.Claims;
 
 namespace RagChatbot.PresentationRazorPage.Pages.Wallet
 {
     public class IndexModel : PageModel
     {
-        private readonly RagChatbot.Business.Interfaces.IAppUserService _userService;
+        private readonly ITransactionService _transactionService;
+        private readonly IAppUserService _appUserService;
 
-        public IndexModel(RagChatbot.Business.Interfaces.IAppUserService userService)
+        public IndexModel(ITransactionService transactionService, IAppUserService appUserService)
         {
-            _userService = userService;
+            _transactionService = transactionService;
+            _appUserService = appUserService;
         }
 
-        public void OnGet()
+        public RagChatbot.Business.DTOs.AppUserDto? UserStats { get; set; }
+
+        public async Task OnGetAsync()
         {
+            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (int.TryParse(userIdStr, out int uId))
+            {
+                UserStats = await _appUserService.GetUserTokenStatsAsync(uId);
+            }
         }
 
-        // 1. HÀM TẠO LINK VÀ ĐIỀU HƯỚNG SANG VNPAY
         public IActionResult OnPostPayPremium()
         {
             string vnp_Url = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
             string vnp_TmnCode = "QGEPANHQ";
             string vnp_HashSecret = "INOS733PMZQZR8KO4EH5VG8L0TKPRQ66";
-            string vnp_ReturnUrl = "https://localhost:7030/Wallet?handler=VnpayReturn";
+            string baseUrl = $"{Request.Scheme}://{Request.Host}";
+            string vnp_ReturnUrl = $"{baseUrl}/Wallet?handler=VnpayReturn";
 
             var vnpay = new VnPayLibrary();
 
-            // SỬA TẠI ĐÂY: Xử lý ép IP về IPv4 chuẩn để không bị lỗi ký tự ":" trên localhost
             string ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
             if (ipAddress == "::1")
             {
@@ -38,15 +49,12 @@ namespace RagChatbot.PresentationRazorPage.Pages.Wallet
             vnpay.AddRequestData("vnp_Version", "2.1.0");
             vnpay.AddRequestData("vnp_Command", "pay");
             vnpay.AddRequestData("vnp_TmnCode", vnp_TmnCode);
-            vnpay.AddRequestData("vnp_Amount", (100000 * 100).ToString());
+            vnpay.AddRequestData("vnp_Amount", (100000 * 100).ToString()); // 100,000 VND
             vnpay.AddRequestData("vnp_CreateDate", DateTime.Now.ToString("yyyyMMddHHmmss"));
             vnpay.AddRequestData("vnp_CurrCode", "VND");
             vnpay.AddRequestData("vnp_IpAddr", ipAddress);
             vnpay.AddRequestData("vnp_Locale", "vn");
-
-            // SỬA TẠI ĐÂY: Viết liền không dấu/không cách để triệt tiêu hoàn toàn rủi ro lệch mã hóa URL
             vnpay.AddRequestData("vnp_OrderInfo", "ThanhToanPremium");
-
             vnpay.AddRequestData("vnp_OrderType", "other");
             vnpay.AddRequestData("vnp_ReturnUrl", vnp_ReturnUrl);
             vnpay.AddRequestData("vnp_TxnRef", DateTime.Now.Ticks.ToString());
@@ -56,7 +64,6 @@ namespace RagChatbot.PresentationRazorPage.Pages.Wallet
             return Redirect(paymentUrl);
         }
 
-        // 2. HÀM ĐÓN KẾT QUẢ TRẢ VỀ TỪ VNPAY
         public async Task<IActionResult> OnGetVnpayReturnAsync()
         {
             string vnp_HashSecret = "INOS733PMZQZR8KO4EH5VG8L0TKPRQ66";
@@ -81,12 +88,12 @@ namespace RagChatbot.PresentationRazorPage.Pages.Wallet
                     var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                     if (int.TryParse(userIdStr, out int uId))
                     {
-                        var currentUser = await _userService.GetByIdAsync(uId);
-                        if (currentUser != null)
-                        {
-                            currentUser.Subscription = "Premium";
-                            await _userService.UpdateUserAsync(currentUser);
-                        }
+                        // LẤY SỐ TIỀN THỰC TẾ TỪ VNPAY (VNPAY nhân 100 nên phải chia lại 100)
+                        string rawAmount = vnpay.GetResponseData("vnp_Amount");
+                        decimal amountVnd = decimal.TryParse(rawAmount, out var parsedAmt) ? parsedAmt / 100m : 100000m;
+
+                        // Gọi service xử lý cập nhật trạng thái Premium và ghi nhận giao dịch
+                        await _transactionService.ProcessPremiumUpgradeAsync(uId, amountVnd);
                     }
 
                     ViewData["Message"] = "🎉 Thanh toán thành công! Tài khoản của bạn đã được nâng cấp lên Premium. Bạn đã có quyền đọc toàn bộ tài liệu.";

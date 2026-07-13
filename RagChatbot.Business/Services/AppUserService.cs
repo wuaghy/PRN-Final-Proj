@@ -11,10 +11,12 @@ namespace RagChatbot.Business.Services
     public class AppUserService : IAppUserService
     {
         private readonly ApplicationDbContext _context;
+        private readonly ISettingService _settingService;
 
-        public AppUserService(ApplicationDbContext context)
+        public AppUserService(ApplicationDbContext context, ISettingService settingService)
         {
             _context = context;
+            _settingService = settingService;
         }
 
         public async Task<AppUserDto?> GetByIdAsync(int id)
@@ -23,6 +25,42 @@ namespace RagChatbot.Business.Services
                 .Include(u => u.Department)
                 .FirstOrDefaultAsync(u => u.Id == id);
             return user == null ? null : MapToDto(user);
+        }
+
+        public async Task<AppUserDto?> GetUserTokenStatsAsync(int userId)
+        {
+            var user = await GetByIdAsync(userId);
+            if (user == null) return null;
+
+            var priceConfig = await _settingService.GetPricingConfigAsync();
+            decimal defaultInRate = priceConfig.TokenInCostPerMillion;
+            decimal defaultOutRate = priceConfig.TokenOutCostPerMillion;
+            decimal defaultUsdRate = priceConfig.UsdVndRate;
+
+            var stats = await _context.ChatMessages
+                .Where(m => m.Session != null && m.Session.UserId == userId)
+                .GroupBy(m => m.Session.UserId)
+                .Select(g => new {
+                    MsgCount = g.Count(),
+                    TokenIn = g.Sum(m => (long)(m.TokenIn ?? 0)),
+                    TokenOut = g.Sum(m => (long)(m.TokenOut ?? 0)),
+                    CostVnd = g.Sum(m =>
+                        (((m.TokenIn ?? 0) * (m.TokenInCostPerMillion ?? defaultInRate) / 1000000m) +
+                         ((m.TokenOut ?? 0) * (m.TokenOutCostPerMillion ?? defaultOutRate) / 1000000m)) *
+                        (m.UsdRate ?? defaultUsdRate)
+                    )
+                })
+                .FirstOrDefaultAsync();
+
+            if (stats != null)
+            {
+                user.TokenIn = stats.TokenIn;
+                user.TokenOut = stats.TokenOut;
+                user.TodayChatCount = stats.MsgCount; // Reuse field for total message count in wallet view
+                user.CostVnd = stats.CostVnd;
+            }
+
+            return user;
         }
 
         public async Task<AppUserDto?> GetByEmailAsync(string email)
@@ -62,7 +100,38 @@ namespace RagChatbot.Business.Services
                 query = query.Where(u => u.Email.Contains(searchEmail));
             }
             var users = await query.ToListAsync();
-            return users.Select(MapToDto);
+            
+            var userIds = users.Select(u => u.Id).ToList();
+            var priceConfig = await _settingService.GetPricingConfigAsync();
+            decimal defaultInRate = priceConfig.TokenInCostPerMillion;
+            decimal defaultOutRate = priceConfig.TokenOutCostPerMillion;
+            decimal defaultUsdRate = priceConfig.UsdVndRate;
+
+            var stats = await _context.ChatMessages
+                .Where(m => m.Session != null && userIds.Contains(m.Session.UserId))
+                .GroupBy(m => m.Session.UserId)
+                .Select(g => new {
+                    UserId = g.Key,
+                    TokenIn = g.Sum(m => (long)(m.TokenIn ?? 0)),
+                    TokenOut = g.Sum(m => (long)(m.TokenOut ?? 0)),
+                    CostVnd = g.Sum(m =>
+                        (((m.TokenIn ?? 0) * (m.TokenInCostPerMillion ?? defaultInRate) / 1000000m) +
+                         ((m.TokenOut ?? 0) * (m.TokenOutCostPerMillion ?? defaultOutRate) / 1000000m)) *
+                        (m.UsdRate ?? defaultUsdRate)
+                    )
+                })
+                .ToDictionaryAsync(x => x.UserId, x => x);
+
+            return users.Select(u => {
+                var dto = MapToDto(u);
+                if (stats.TryGetValue(u.Id, out var s))
+                {
+                    dto.TokenIn = s.TokenIn;
+                    dto.TokenOut = s.TokenOut;
+                    dto.CostVnd = s.CostVnd;
+                }
+                return dto;
+            });
         }
 
         public async Task<int> GetPremiumUsersCountAsync()

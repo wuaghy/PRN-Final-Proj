@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Pgvector;
@@ -12,9 +13,11 @@ using RagChatbot.DataAccess.Data;
 namespace RagChatbot.DataAccess.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260710054429_AddTokenBillingAndTransactions")]
+    partial class AddTokenBillingAndTransactions
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -114,9 +117,9 @@ namespace RagChatbot.DataAccess.Migrations
                             Email = "admin@gmail.com",
                             FirstName = "Quản trị",
                             IsActive = true,
-                            LastActiveDate = new DateTime(2026, 7, 13, 0, 0, 0, 0, DateTimeKind.Utc),
+                            LastActiveDate = new DateTime(2026, 7, 10, 0, 0, 0, 0, DateTimeKind.Utc),
                             LastName = "Hệ thống",
-                            LastQueryDate = new DateTime(2026, 7, 13, 4, 24, 55, 952, DateTimeKind.Utc).AddTicks(477),
+                            LastQueryDate = new DateTime(2026, 7, 10, 5, 44, 28, 462, DateTimeKind.Utc).AddTicks(2240),
                             PasswordHash = "Y07d+n5+EQi6ce7n2ti3NIbfnCs1+TT9LE/LNjozxlc=",
                             Role = "Admin",
                             Subscription = 0,
@@ -129,9 +132,9 @@ namespace RagChatbot.DataAccess.Migrations
                             Email = "student1@gmail.com",
                             FirstName = "Học",
                             IsActive = true,
-                            LastActiveDate = new DateTime(2026, 7, 13, 0, 0, 0, 0, DateTimeKind.Utc),
+                            LastActiveDate = new DateTime(2026, 7, 10, 0, 0, 0, 0, DateTimeKind.Utc),
                             LastName = "Sinh 1",
-                            LastQueryDate = new DateTime(2026, 7, 13, 4, 24, 55, 952, DateTimeKind.Utc).AddTicks(803),
+                            LastQueryDate = new DateTime(2026, 7, 10, 5, 44, 28, 462, DateTimeKind.Utc).AddTicks(2685),
                             PasswordHash = "q5AEtNl18HLfc3SmE3xdUM9B4HfRQy9LxxhIBjdDrhk=",
                             Role = "Student",
                             Subscription = 0,
@@ -144,9 +147,9 @@ namespace RagChatbot.DataAccess.Migrations
                             Email = "student2@gmail.com",
                             FirstName = "Học",
                             IsActive = true,
-                            LastActiveDate = new DateTime(2026, 7, 13, 0, 0, 0, 0, DateTimeKind.Utc),
+                            LastActiveDate = new DateTime(2026, 7, 10, 0, 0, 0, 0, DateTimeKind.Utc),
                             LastName = "Sinh 2",
-                            LastQueryDate = new DateTime(2026, 7, 13, 4, 24, 55, 952, DateTimeKind.Utc).AddTicks(816),
+                            LastQueryDate = new DateTime(2026, 7, 10, 5, 44, 28, 462, DateTimeKind.Utc).AddTicks(2714),
                             PasswordHash = "++RMfEkC1qU39CHjzrIMeIRvyI14mE55Nv/47HrPF1I=",
                             Role = "Student",
                             Subscription = 0,
@@ -160,9 +163,9 @@ namespace RagChatbot.DataAccess.Migrations
                             Email = "hod@gmail.com",
                             FirstName = "Trưởng",
                             IsActive = true,
-                            LastActiveDate = new DateTime(2026, 7, 13, 0, 0, 0, 0, DateTimeKind.Utc),
+                            LastActiveDate = new DateTime(2026, 7, 10, 0, 0, 0, 0, DateTimeKind.Utc),
                             LastName = "Khoa CNTT",
-                            LastQueryDate = new DateTime(2026, 7, 13, 4, 24, 55, 952, DateTimeKind.Utc).AddTicks(825),
+                            LastQueryDate = new DateTime(2026, 7, 10, 5, 44, 28, 462, DateTimeKind.Utc).AddTicks(2752),
                             PasswordHash = "Cl7afaR0DnYdIJfugd6f3iJedk+4iQxVU2eK8vcBa6w=",
                             Role = "HeadOfDepartment",
                             Subscription = 0,
@@ -231,14 +234,8 @@ namespace RagChatbot.DataAccess.Migrations
                     b.Property<int?>("TokenIn")
                         .HasColumnType("integer");
 
-                    b.Property<decimal?>("TokenInCostPerMillion")
-                        .HasColumnType("numeric");
-
                     b.Property<int?>("TokenOut")
                         .HasColumnType("integer");
-
-                    b.Property<decimal?>("TokenOutCostPerMillion")
-                        .HasColumnType("numeric");
 
                     b.Property<decimal?>("UsdRate")
                         .HasColumnType("decimal(18,2)");
@@ -342,7 +339,7 @@ namespace RagChatbot.DataAccess.Migrations
                         new
                         {
                             Id = 1,
-                            CreatedAt = new DateTime(2026, 7, 13, 4, 24, 55, 952, DateTimeKind.Utc).AddTicks(379),
+                            CreatedAt = new DateTime(2026, 7, 10, 5, 44, 28, 462, DateTimeKind.Utc).AddTicks(1932),
                             Description = "Khoa CNTT",
                             IsActive = false,
                             Name = "Công nghệ Thông tin"

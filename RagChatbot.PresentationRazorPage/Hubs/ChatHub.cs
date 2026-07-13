@@ -1,8 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using RagChatbot.Business.Interfaces;
-using System.Text.Json;
 using System.Collections.Concurrent;
+using System.Text.Json;
 
 namespace RagChatbot.PresentationRazorPage.Hubs
 {
@@ -15,6 +16,7 @@ namespace RagChatbot.PresentationRazorPage.Hubs
         private readonly IAiService _aiService;
         private readonly IDocumentService _documentService;
         private readonly IAppUserService _userService;
+        private readonly ISettingService _settingService; // Thay thế DbContext bằng SettingService
         private readonly ILogger<ChatHub> _logger;
         private static readonly ConcurrentDictionary<string, CancellationTokenSource> _activeGenerations = new();
 
@@ -25,6 +27,7 @@ namespace RagChatbot.PresentationRazorPage.Hubs
             IAiService aiService,
             IDocumentService documentService,
             IAppUserService userService,
+            ISettingService settingService, // Inject SettingService
             ILogger<ChatHub> logger)
         {
             _chatService = chatService;
@@ -33,6 +36,7 @@ namespace RagChatbot.PresentationRazorPage.Hubs
             _aiService = aiService;
             _documentService = documentService;
             _userService = userService;
+            _settingService = settingService;
             _logger = logger;
         }
 
@@ -188,7 +192,9 @@ namespace RagChatbot.PresentationRazorPage.Hubs
                     var history = await _chatService.GetRecentSessionMessagesAsync(sessionId, 10, savedUserMsg.Id);
 
                     var allDocs = await _documentService.GetBySubjectIdAsync(subjectId);
-                    bool hasActiveDocs = allDocs.Any(d => d.Status == "Indexed" && d.IsActive);
+                    var totalDocs = allDocs.Count();
+                    var indexedActive = allDocs.Where(d => d.Status == "Indexed" && d.IsActive).ToList();
+                    bool hasActiveDocs = indexedActive.Any();
 
                     if (!hasActiveDocs)
                     {
@@ -216,10 +222,9 @@ namespace RagChatbot.PresentationRazorPage.Hubs
                     if (!isGreeting)
                     {
                         standaloneQuery = await _aiService.RewriteQueryAsync(message, history);
-                        _logger.LogInformation("Original Query: {OriginalQuery}, Standalone Query: {StandaloneQuery}", message, standaloneQuery);
-
+                        
                         var questionEmbedding = await _aiService.GenerateEmbeddingAsync(standaloneQuery);
-
+                        
                         if (documentIds != null)
                         {
                             documentIds = documentIds.Where(id => id > 0).ToList();
@@ -297,7 +302,6 @@ namespace RagChatbot.PresentationRazorPage.Hubs
                     var contextString = contextBuilder.ToString();
                     var citationsJson = JsonSerializer.Serialize(citationsList);
 
-                    // 4. Build System Prompt (STRICT_CONSTRAINTS)
                     var systemPrompt = $@"Bạn là trợ lý học tập thông minh. Bạn có thể trò chuyện, chào hỏi thân thiện.
 Tuy nhiên, đối với các câu hỏi tìm kiếm thông tin, bạn phải tuân thủ nghiêm ngặt GROUNDING_RULE: Chỉ sử dụng thông tin từ [NGỮ CẢNH TÀI LIỆU] dưới đây.
 Tuyệt đối không sử dụng kiến thức bên ngoài. 
@@ -308,11 +312,23 @@ Nếu hoàn toàn không có thông tin nào liên quan trong ngữ cảnh, hãy
 {contextString}
 ";
 
-                    // 5. Get Streaming Response
-                    var stream = _aiService.GetChatStreamingResponseAsync(systemPrompt, standaloneQuery, history, cts.Token);
+                    // KHỞI TẠO BIẾN ĐỂ HỨNG TOKEN TỪ CALLBACK
+                    int capturedTokenIn = 0;
+                    int capturedTokenOut = 0;
+
+                    // Gọi phiên bản đã được thêm Callback của AiService
+                    var stream = _aiService.GetChatStreamingResponseAsync(
+                        systemPrompt,
+                        standaloneQuery,
+                        history,
+                        onTokenUsageCaptured: (inTokens, outTokens) =>
+                        {
+                            capturedTokenIn = inTokens;
+                            capturedTokenOut = outTokens;
+                        },
+                        cancellationToken: cts.Token);
 
                     var fullResponse = new System.Text.StringBuilder();
-                    // bool wasCanceled = false;
 
                     await Clients.Caller.SendAsync("ReceiveToken", "", false);
 
@@ -326,7 +342,6 @@ Nếu hoàn toàn không có thông tin nào liên quan trong ngữ cảnh, hãy
                     }
                     catch (OperationCanceledException)
                     {
-                        // wasCanceled = true;
                         _logger.LogInformation("Generation stopped by user for session {SessionId}", realSessionIdStr);
                         fullResponse.Append("\n\n*(Đã dừng tạo)*");
                         await Clients.Caller.SendAsync("ReceiveToken", "\n\n*(Đã dừng tạo)*", false);
@@ -339,19 +354,28 @@ Nếu hoàn toàn không có thông tin nào liên quan trong ngữ cảnh, hãy
                         citationsJson = "[]";
                     }
 
-                    // 6. Save Assistant Response
+                    // TRUY VẤN CẤU HÌNH GIÁ DYNAMIC TỪ APPSETTINGS
+                    var activePricing = await _settingService.GetPricingConfigAsync();
+
+                    // Lưu Assistant Response kèm Metadata Tài chính & Token
                     var assistantMessage = new RagChatbot.Business.DTOs.CreateChatMessageDto
                     {
                         SessionId = sessionId,
                         Role = "assistant",
                         Content = finalResponseStr,
-                        Citations = citationsJson
+                        Citations = citationsJson,
+                        TokenIn = capturedTokenIn,
+                        TokenOut = capturedTokenOut,
+                        UsdRate = activePricing.UsdVndRate,
+                        TokenInCostPerMillion = activePricing.TokenInCostPerMillion,
+                        TokenOutCostPerMillion = activePricing.TokenOutCostPerMillion
                     };
+
+                    // Lưu ý: Đảm bảo class CreateChatMessageDto hoặc tầng Service của bạn đã map các trường mới này vào Entity ChatMessage
                     await _chatService.AddMessageAsync(assistantMessage);
 
-                    // 7. Send completion with citations
+                    // Gửi tín hiệu hoàn tất
                     await Clients.Caller.SendAsync("ReceiveToken", citationsJson, true);
-
                 }
                 finally
                 {

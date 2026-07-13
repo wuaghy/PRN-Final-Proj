@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Pgvector;
@@ -18,6 +18,8 @@ namespace RagChatbot.Business.Services
         private readonly IGoogleDriveService _driveService;
         private readonly ILocalStorageService _localStorage;
         private readonly ILogger<DocumentProcessingService> _logger;
+        // 1. Khai báo thêm SettingService để lấy cấu hình chunking công việc nhá
+        private readonly ISettingService _settingService;
 
         public DocumentProcessingService(
             IDocumentRepository docRepo,
@@ -27,7 +29,8 @@ namespace RagChatbot.Business.Services
             IAiService aiService,
             IGoogleDriveService driveService,
             ILocalStorageService localStorage,
-            ILogger<DocumentProcessingService> logger)
+            ILogger<DocumentProcessingService> logger,
+            ISettingService settingService) // Inject vào đây nhá
         {
             _docRepo = docRepo;
             _chunkRepo = chunkRepo;
@@ -37,6 +40,7 @@ namespace RagChatbot.Business.Services
             _driveService = driveService;
             _localStorage = localStorage;
             _logger = logger;
+            _settingService = settingService;
         }
 
         public async Task ProcessNextPendingDocumentAsync(Func<Task>? onStatusChanged, CancellationToken stoppingToken)
@@ -132,12 +136,16 @@ namespace RagChatbot.Business.Services
                     }
                 }
 
+                // 2. LẤY CẤU HÌNH CHUNK TỪ SETTING SERVICE (Gọi 1 lần trước vòng lặp)
+                var chunkConfig = await _settingService.GetChunkConfigAsync();
+
                 // Step 1: Extract all text chunks from all pages concurrently
                 var allChunksBag = new ConcurrentBag<(int PageNumber, int ChunkIndex, string Text)>();
 
                 await Parallel.ForEachAsync(pageList, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount, CancellationToken = stoppingToken }, async (page, ct) =>
                 {
-                    var chunks = await _chunkingService.ChunkTextAsync(page.Text);
+                    // 3. Truyền cấu hình chunkConfig vào đây để sửa lỗi build
+                    var chunks = await _chunkingService.ChunkTextAsync(page.Text, chunkConfig);
                     for (int i = 0; i < chunks.Count; i++)
                     {
                         allChunksBag.Add((PageNumber: page.PageNumber, ChunkIndex: i, Text: chunks[i]));

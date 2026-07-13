@@ -28,7 +28,7 @@ namespace RagChatbot.PresentationRazorPage.Pages.Auth
                 {
                     return RedirectToPage("/Admin/Index");
                 }
-                if (User.IsInRole("HeadOfDepartment"))
+                if (User.IsInRole("HeadOfDepartment") || User.IsInRole("Lecturer"))
                 {
                     return RedirectToPage("/Document/Index");
                 }
@@ -86,7 +86,7 @@ namespace RagChatbot.PresentationRazorPage.Pages.Auth
             {
                 return RedirectToPage("/Admin/Index");
             }
-            if (user.Role == "HeadOfDepartment")
+            if (user.Role == "HeadOfDepartment" || user.Role == "Lecturer")
             {
                 return RedirectToPage("/Document/Index");
             }

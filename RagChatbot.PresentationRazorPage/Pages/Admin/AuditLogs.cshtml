@@ -1,0 +1,141 @@
+@page
+@model RagChatbot.PresentationRazorPage.Pages.Admin.AuditLogsModel
+@{
+    ViewData["Title"] = "Nhật ký kiểm toán (Audit Logs)";
+    Layout = "~/Pages/Shared/_Layout.cshtml";
+}
+
+<div class="p-6 max-w-7xl mx-auto w-full space-y-6 overflow-y-auto h-full">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
+        <div>
+            <h1 class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <i class="fa-solid fa-list-check text-emerald-500"></i> Nhật Ký Kiểm Toán (Audit Logs)
+            </h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Giám sát toàn bộ hoạt động quan trọng của Trưởng bộ môn và Quản trị viên.</p>
+        </div>
+        <a asp-page="/Admin/Dashboard" class="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-800 dark:hover:bg-slate-800 transition-colors">
+            <i class="fa-solid fa-arrow-left"></i> Quay lại Dashboard
+        </a>
+    </div>
+
+    <div class="flex flex-col sm:flex-row gap-3 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+        <div class="flex-1 relative">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+            <input type="text" id="searchLogKeyword" placeholder="Tìm kiếm theo hành động, người thực hiện hoặc chi tiết..."
+                   class="w-full pl-9 pr-4 py-2 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg focus:outline-none focus:border-indigo-500 text-slate-800 dark:text-slate-100 transition-colors" />
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-50 dark:bg-slate-950/50 border-b border-slate-200 dark:border-slate-800 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                        <th class="p-4 w-16 text-center">STT</th>
+                        <th class="p-4 w-48">Thời gian</th>
+                        <th class="p-4 w-56">Người thực hiện</th>
+                        <th class="p-4 w-44">Hành động</th>
+                        <th class="p-4 w-32">Đối tượng ID</th>
+                        <th class="p-4">Chi tiết hành động</th>
+                    </tr>
+                </thead>
+                <tbody id="auditLogsTableBody" class="divide-y divide-slate-150 dark:divide-slate-800/60 text-sm">
+                    @if (Model.AuditLogs == null || !Model.AuditLogs.Any())
+                    {
+                        <tr>
+                            <td colspan="6" class="p-8 text-center text-slate-400 dark:text-slate-500">
+                                <i class="fa-solid fa-folder-open text-3xl mb-2 block"></i>
+                                Hiện tại chưa có bản ghi nhật ký kiểm toán nào.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        int index = 1;
+                        foreach (var log in Model.AuditLogs)
+                        {
+                            var actorEmail = log.Actor != null ? log.Actor.Email : $"User ID: {log.ActorId}";
+                            var actorName = log.Actor != null ? $"{log.Actor.LastName} {log.Actor.FirstName}".Trim() : "N/A";
+                            var searchText = $"{log.Action} {actorEmail} {actorName} {log.Details}".ToLower();
+
+                            <tr class="log-row hover:bg-slate-50/50 dark:hover:bg-slate-950/20 transition-colors" data-search="@searchText">
+                                <td class="p-4 text-center font-medium text-slate-400">@(index++)</td>
+                                <td class="p-4 text-xs text-slate-500 dark:text-slate-400">
+                                    @log.Timestamp.ToString("dd/MM/yyyy HH:mm:ss")
+                                </td>
+                                <td class="p-4">
+                                    <div class="font-semibold text-slate-800 dark:text-slate-200">
+                                        @actorName
+                                    </div>
+                                    <div class="text-xs text-slate-400">@actorEmail</div>
+                                </td>
+                                <td class="p-4">
+                                    @if (log.Action.Contains("Assign") || log.Action.Contains("HOD"))
+                                    {
+                                        <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200/30">@log.Action</span>
+                                    }
+                                    else if (log.Action.Contains("Delete") || log.Action.Contains("End"))
+                                    {
+                                        <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400 border border-rose-200/30">@log.Action</span>
+                                    }
+                                    else if (log.Action.Contains("Create") || log.Action.Contains("Update"))
+                                    {
+                                        <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400 border border-indigo-200/30">@log.Action</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">@log.Action</span>
+                                    }
+                                </td>
+                                <td class="p-4 font-mono text-xs text-slate-500">
+                                    @log.TargetObjectId
+                                </td>
+                                <td class="p-4 text-slate-600 dark:text-slate-400 max-w-md break-words">
+                                    @log.Details
+                                </td>
+                            </tr>
+                        }
+                    }
+                    <tr id="noLogsRow" style="display: none;">
+                        <td colspan="6" class="p-8 text-center text-slate-400 italic">
+                            Không tìm thấy bản ghi nhật ký nào khớp với từ khóa tìm kiếm.
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const inputKeyword = document.getElementById("searchLogKeyword");
+            const rows = document.querySelectorAll(".log-row");
+            const noLogsRow = document.getElementById("noLogsRow");
+
+            function performFilter() {
+                const keyword = inputKeyword.value.toLowerCase().trim();
+                let visibleRowsCount = 0;
+
+                rows.forEach(row => {
+                    const rowSearchText = row.getAttribute("data-search") || "";
+                    if (rowSearchText.includes(keyword)) {
+                        row.style.display = "";
+                        visibleRowsCount++;
+                    } else {
+                        row.style.display = "none";
+                    }
+                });
+
+                if (visibleRowsCount === 0 && rows.length > 0) {
+                    noLogsRow.style.display = "";
+                } else {
+                    noLogsRow.style.display = "none";
+                }
+            }
+
+            inputKeyword.addEventListener("input", performFilter);
+        });
+    </script>
+}

@@ -101,6 +101,8 @@ namespace RagChatbot.Business.Services
         {
             var entities = await _documentRepository.Query()
                 .Include(d => d.Subject)
+                    .ThenInclude(s => s.Department)
+                .Include(d => d.Uploader)
                 .OrderByDescending(d => d.UploadedAt)
                 .Take(count)
                 .ToListAsync();

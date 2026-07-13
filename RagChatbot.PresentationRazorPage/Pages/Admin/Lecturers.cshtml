@@ -142,7 +142,7 @@
                         </select>
                     </div>
                     <div class="flex gap-2">
-                        <select name="subjectId" class="flex-1 py-2 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none focus:border-emerald-500 transition-all dark:text-white cursor-pointer">
+                        <select name="subjectId" class="flex-1 min-w-0 py-2 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none focus:border-emerald-500 transition-all dark:text-white cursor-pointer">
                             <option value="">— Lọc theo môn học —</option>
                             @foreach (var sub in Model.AllSubjects.Where(s => s.IsActive))
                             {
@@ -489,9 +489,25 @@
             const subjectName = checkbox.getAttribute('data-subject-name');
             const currentLecturer = checkbox.getAttribute('data-current-lecturer-name');
             
-            const confirmed = confirm(`Môn học "${subjectCode} - ${subjectName}" đang được phân công cho giảng viên "${currentLecturer}". Bạn có chắc chắn muốn chuyển quyền phụ trách môn này sang giảng viên hiện tại?`);
-            if (!confirmed) {
-                checkbox.checked = false;
+            // Tạm thời bỏ chọn checkbox cho đến khi người dùng xác nhận
+            checkbox.checked = false;
+
+            if (typeof showConfirmModal === 'function') {
+                showConfirmModal(
+                    'Xác nhận gán môn học',
+                    `Môn học "${subjectCode} - ${subjectName}" đang được phân công cho giảng viên "${currentLecturer}". Bạn có chắc chắn muốn chuyển quyền phụ trách môn này sang giảng viên hiện tại?`,
+                    () => {
+                        // Nếu đồng ý, đánh dấu lại checkbox và cho phép đổi trạng thái
+                        checkbox.checked = true;
+                    },
+                    'Đồng ý',
+                    false // isDanger = false để hiện màu xanh (emerald) của hệ thống
+                );
+            } else {
+                const confirmed = confirm(`Môn học "${subjectCode} - ${subjectName}" đang được phân công cho giảng viên "${currentLecturer}". Bạn có chắc chắn muốn chuyển quyền phụ trách môn này sang giảng viên hiện tại?`);
+                if (confirmed) {
+                    checkbox.checked = true;
+                }
             }
         }
     }

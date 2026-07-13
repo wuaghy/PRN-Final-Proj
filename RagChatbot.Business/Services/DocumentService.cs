@@ -19,7 +19,10 @@ namespace RagChatbot.Business.Services
 
         public async Task<DocumentDto?> GetByIdAsync(int id)
         {
-            var entity = await _documentRepository.GetByIdAsync(id);
+            var entity = await _documentRepository.Query()
+                .Include(d => d.Subject)
+                .Include(d => d.Uploader)
+                .FirstOrDefaultAsync(d => d.Id == id);
             return entity.ToDto();
         }
 

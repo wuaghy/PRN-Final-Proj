@@ -277,26 +277,30 @@ namespace RagChatbot.PresentationRazorPage.Hubs
                     // Construct Context string and Citations
                     var contextBuilder = new System.Text.StringBuilder();
                     var citationsList = new List<object>();
-                    var seenCitations = new HashSet<string>();
+                    var citationKeyToIndex = new Dictionary<string, int>();
 
                     foreach (var chunk in similarChunks)
                     {
                         var dispName = string.IsNullOrWhiteSpace(chunk.Document?.DisplayName) ? chunk.Document?.FileName : chunk.Document?.DisplayName;
-                        contextBuilder.AppendLine($"[{dispName}] - Trang {chunk.PageNumber}");
-                        contextBuilder.AppendLine(chunk.Content);
-                        contextBuilder.AppendLine("---");
-
                         var citationKey = $"{dispName}_{chunk.PageNumber}";
-                        if (!seenCitations.Contains(citationKey))
+
+                        if (!citationKeyToIndex.TryGetValue(citationKey, out int citationIdx))
                         {
-                            seenCitations.Add(citationKey);
                             citationsList.Add(new
                             {
+                                Index = citationsList.Count + 1, // Store the 1-based index
                                 FileName = dispName,
                                 Page = chunk.PageNumber,
                                 ContentSnippet = chunk.Content.Length > 100 ? chunk.Content.Substring(0, 100) + "..." : chunk.Content
                             });
+                            citationIdx = citationsList.Count;
+                            citationKeyToIndex[citationKey] = citationIdx;
                         }
+
+                        contextBuilder.AppendLine($"[Tài liệu số {citationIdx}]");
+                        contextBuilder.AppendLine($"Nguồn: {dispName} - Trang {chunk.PageNumber}");
+                        contextBuilder.AppendLine(chunk.Content);
+                        contextBuilder.AppendLine("---");
                     }
 
                     var contextString = contextBuilder.ToString();
@@ -305,7 +309,13 @@ namespace RagChatbot.PresentationRazorPage.Hubs
                     var systemPrompt = $@"Bạn là trợ lý học tập thông minh. Bạn có thể trò chuyện, chào hỏi thân thiện.
 Tuy nhiên, đối với các câu hỏi tìm kiếm thông tin, bạn phải tuân thủ nghiêm ngặt GROUNDING_RULE: Chỉ sử dụng thông tin từ [NGỮ CẢNH TÀI LIỆU] dưới đây.
 Tuyệt đối không sử dụng kiến thức bên ngoài. 
-LƯU Ý QUAN TRỌNG: Nếu câu hỏi của người dùng ngắn gọn, thiếu chủ ngữ (ví dụ: 'bao nhiêu tuổi?'), hãy chủ động suy luận từ các thông tin, nhân vật, hoặc sự kiện có trong ngữ cảnh để đưa ra câu trả lời hợp lý nhất.
+
+LƯU Ý QUAN TRỌNG VỀ TRÍCH DẪN (CITATION):
+- Khi sử dụng thông tin từ tài liệu số N (ví dụ: [Tài liệu số 1], [Tài liệu số 2],...), bắt buộc phải đánh dấu trích dẫn bằng cách thêm ký tự [N] ở cuối câu hoặc ý sử dụng thông tin đó (ví dụ: ""Hải sinh ra ở Huế [1]."" hoặc ""Đức năm nay 32 tuổi [3]."").
+- Tuyệt đối không chèn ký tự trích dẫn cho tài liệu nào bạn không sử dụng thông tin trong câu trả lời.
+- Không tự bịa ra các số trích dẫn không có trong danh sách [NGỮ CẢNH TÀI LIỆU].
+
+LƯU Ý PHỤ: Nếu câu hỏi của người dùng ngắn gọn, thiếu chủ ngữ (ví dụ: 'bao nhiêu tuổi?'), hãy chủ động suy luận từ các thông tin, nhân vật, hoặc sự kiện có trong ngữ cảnh để đưa ra câu trả lời hợp lý nhất.
 Nếu hoàn toàn không có thông tin nào liên quan trong ngữ cảnh, hãy trả lời: 'Hệ thống không tìm thấy thông tin trong các tài liệu đã chọn'.
 
 [NGỮ CẢNH TÀI LIỆU]:
@@ -348,10 +358,48 @@ Nếu hoàn toàn không có thông tin nào liên quan trong ngữ cảnh, hãy
                     }
 
                     var finalResponseStr = fullResponse.ToString();
+                    var finalCitationsList = new List<object>();
 
                     if (finalResponseStr.Contains("Hệ thống không tìm thấy thông tin trong các tài liệu đã chọn"))
                     {
                         citationsJson = "[]";
+                    }
+                    else
+                    {
+                        // Parse citation numbers from the response text
+                        var citationMatches = System.Text.RegularExpressions.Regex.Matches(finalResponseStr, @"\[([1-9][0-9]*)\]");
+                        var citedIndices = new List<int>();
+                        foreach (System.Text.RegularExpressions.Match match in citationMatches)
+                        {
+                            if (int.TryParse(match.Groups[1].Value, out int idx))
+                            {
+                                if (idx >= 1 && idx <= citationsList.Count)
+                                {
+                                    citedIndices.Add(idx);
+                                }
+                            }
+                        }
+
+                        var uniqueCitedIndices = citedIndices.Distinct().OrderBy(x => x).ToList();
+
+                        // Strip invalid or out-of-bounds citations, keeping valid ones
+                        finalResponseStr = System.Text.RegularExpressions.Regex.Replace(
+                            finalResponseStr,
+                            @"\s*\[([1-9][0-9]*)\]",
+                            m =>
+                            {
+                                if (int.TryParse(m.Groups[1].Value, out int idx) && idx >= 1 && idx <= citationsList.Count)
+                                {
+                                    return m.Value;
+                                }
+                                return "";
+                            });
+
+                        foreach (var oldIdx in uniqueCitedIndices)
+                        {
+                            finalCitationsList.Add(citationsList[oldIdx - 1]);
+                        }
+                        citationsJson = JsonSerializer.Serialize(finalCitationsList);
                     }
 
                     // TRUY VẤN CẤU HÌNH GIÁ DYNAMIC TỪ APPSETTINGS
@@ -374,8 +422,13 @@ Nếu hoàn toàn không có thông tin nào liên quan trong ngữ cảnh, hãy
                     // Lưu ý: Đảm bảo class CreateChatMessageDto hoặc tầng Service của bạn đã map các trường mới này vào Entity ChatMessage
                     await _chatService.AddMessageAsync(assistantMessage);
 
-                    // Gửi tín hiệu hoàn tất
-                    await Clients.Caller.SendAsync("ReceiveToken", citationsJson, true);
+                    // Gửi tín hiệu hoàn tất (kèm wrapper để client cập nhật text và hiển thị nguồn trích dẫn đúng)
+                    var responseWrapper = new
+                    {
+                        finalResponse = finalResponseStr,
+                        citations = finalCitationsList
+                    };
+                    await Clients.Caller.SendAsync("ReceiveToken", JsonSerializer.Serialize(responseWrapper), true);
                 }
                 finally
                 {

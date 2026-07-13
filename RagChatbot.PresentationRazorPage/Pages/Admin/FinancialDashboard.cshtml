@@ -72,13 +72,14 @@
                             foreach (var item in Model.TopSubjects)
                             {
                                 var pct = (double)item.QuestionCount * 100.0 / maxCount;
+                                var pctStr = pct.ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
                                 <div>
                                     <div class="flex justify-between text-sm mb-1">
                                         <span class="font-medium text-slate-300">@item.SubjectCode - @item.SubjectName</span>
                                         <span class="text-teal-400 font-semibold">@item.QuestionCount lượt hỏi</span>
                                     </div>
-                                    <div class="w-full bg-slate-850 rounded-full h-2">
-                                        <div class="bg-gradient-to-r from-teal-500 to-emerald-400 h-2 rounded-full" style="width: @pct%"></div>
+                                    <div class="w-full bg-slate-800 rounded-full h-2">
+                                        <div class="bg-gradient-to-r from-teal-500 to-emerald-400 h-2 rounded-full" style="width: @(pctStr)%"></div>
                                     </div>
                                 </div>
                             }
@@ -105,6 +106,7 @@
                             foreach (var item in Model.TopDocuments)
                             {
                                 var pct = (double)item.CitationCount * 100.0 / maxCitations;
+                                var pctStr = pct.ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
                                 <div>
                                     <div class="flex justify-between text-sm mb-1">
                                         <span class="font-medium text-slate-300 truncate max-w-[70%]" title="@item.DocumentName">
@@ -112,8 +114,8 @@
                                         </span>
                                         <span class="text-orange-400 font-semibold">@item.CitationCount lần trích dẫn</span>
                                     </div>
-                                    <div class="w-full bg-slate-850 rounded-full h-2">
-                                        <div class="bg-gradient-to-r from-orange-500 to-amber-400 h-2 rounded-full" style="width: @pct%"></div>
+                                    <div class="w-full bg-slate-800 rounded-full h-2">
+                                        <div class="bg-gradient-to-r from-orange-500 to-amber-400 h-2 rounded-full" style="width: @(pctStr)%"></div>
                                     </div>
                                 </div>
                             }
@@ -167,13 +169,14 @@
                         {
                             foreach (var item in Model.FeedbackStats)
                             {
+                                var pctStr = item.Percentage.ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
                                 <div>
                                     <div class="flex justify-between text-sm mb-1">
                                         <span class="font-medium text-slate-300">@item.TypeName</span>
                                         <span class="text-slate-400">@item.Count ý kiến (@item.Percentage.ToString("N1")%)</span>
                                     </div>
-                                    <div class="w-full bg-slate-850 rounded-full h-2">
-                                        <div class="bg-indigo-500 h-2 rounded-full" style="width: @item.Percentage%"></div>
+                                    <div class="w-full bg-slate-800 rounded-full h-2">
+                                        <div class="bg-indigo-500 h-2 rounded-full" style="width: @(pctStr)%"></div>
                                     </div>
                                 </div>
                             }

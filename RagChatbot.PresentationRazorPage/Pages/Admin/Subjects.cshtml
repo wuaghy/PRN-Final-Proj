@@ -147,7 +147,9 @@
                                     <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group">
                                         <td class="px-6 py-4 font-mono text-xs font-bold text-slate-500 dark:text-slate-400 whitespace-nowrap">@subject.Code</td>
 
-                                        <td class="px-6 py-4 font-bold text-gray-900 dark:text-slate-100">@subject.Name</td>
+                                        <td class="px-6 py-4 font-bold text-gray-900 dark:text-slate-100">
+                                            <a href="javascript:void(0)" onclick="openSubjectHistoryModal(@subject.Id, '@subject.Name.Replace("'", "\\'")')" class="hover:text-blue-500 transition-colors cursor-pointer decoration-blue-500/30 underline-offset-4 hover:underline">@subject.Name</a>
+                                        </td>
 
                                         <td class="px-6 py-4">
                                             @if (!string.IsNullOrEmpty(subject.DepartmentName))
@@ -197,11 +199,6 @@
                                                 <button onclick="openEditModal(@subject.Id, '@subject.Code.Replace("'", "\\'")', '@subject.Name.Replace("'", "\\'")')"
                                                         class="text-emerald-500 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 transition p-2" title="Sửa">
                                                     <i class="fa-solid fa-pen"></i>
-                                                </button>
-
-                                                <button onclick="openSubjectHistoryModal(@subject.Id, '@subject.Name.Replace("'", "\\'")')"
-                                                        class="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition p-2" title="Lịch sử Nhiệm kỳ">
-                                                    <i class="fa-solid fa-clock-rotate-left"></i>
                                                 </button>
                                             </div>
                                         </td>
@@ -308,17 +305,23 @@
             .then(res => res.json())
             .then(data => {
                 if (data && data.length > 0) {
-                    list.innerHTML = data.map(item => `
-                        <li class="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800/80 rounded-xl">
-                            <div>
-                                <p class="text-sm font-semibold text-slate-850 dark:text-slate-200">${item.lecturerName}</p>
-                                <p class="text-xs text-slate-450 dark:text-slate-400 mt-0.5">Bắt đầu: ${item.startAt}</p>
-                            </div>
-                            <span class="px-2.5 py-1 text-[11px] font-semibold rounded-full ${item.endAt ? 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'}">
-                                ${item.endAt ? `Đến: ${item.endAt}` : 'Hiện tại'}
-                            </span>
-                        </li>
-                    `).join('');
+                    list.innerHTML = data.map(item => {
+                        const endAtStr = item.endAt ? item.endAt : '...';
+                        const statusClass = item.endAt ? 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400' : 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 font-bold';
+                        return `
+                            <li class="flex items-center justify-between p-3 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30">
+                                <div class="flex items-center gap-3">
+                                    <span class="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                                        <i class="fa-solid fa-user"></i>
+                                    </span>
+                                    <span class="text-sm font-semibold text-slate-800 dark:text-slate-200">${item.lecturerName}</span>
+                                </div>
+                                <span class="text-xs px-2.5 py-1 rounded-lg ${statusClass}">
+                                    ${item.startAt} - ${endAtStr}
+                                </span>
+                            </li>
+                        `;
+                    }).join('');
                 } else {
                     list.innerHTML = '<li class="text-center text-slate-500 text-sm py-4">Môn học này chưa từng được gán giảng viên nào quản lý.</li>';
                 }

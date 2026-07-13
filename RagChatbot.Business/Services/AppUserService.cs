@@ -32,13 +32,23 @@ namespace RagChatbot.Business.Services
             var user = await GetByIdAsync(userId);
             if (user == null) return null;
 
+            var priceConfig = await _settingService.GetPricingConfigAsync();
+            decimal defaultInRate = priceConfig.TokenInCostPerMillion;
+            decimal defaultOutRate = priceConfig.TokenOutCostPerMillion;
+            decimal defaultUsdRate = priceConfig.UsdVndRate;
+
             var stats = await _context.ChatMessages
                 .Where(m => m.Session != null && m.Session.UserId == userId)
                 .GroupBy(m => m.Session.UserId)
                 .Select(g => new {
                     MsgCount = g.Count(),
                     TokenIn = g.Sum(m => (long)(m.TokenIn ?? 0)),
-                    TokenOut = g.Sum(m => (long)(m.TokenOut ?? 0))
+                    TokenOut = g.Sum(m => (long)(m.TokenOut ?? 0)),
+                    CostVnd = g.Sum(m =>
+                        (((m.TokenIn ?? 0) * (m.TokenInCostPerMillion ?? defaultInRate) / 1000000m) +
+                         ((m.TokenOut ?? 0) * (m.TokenOutCostPerMillion ?? defaultOutRate) / 1000000m)) *
+                        (m.UsdRate ?? defaultUsdRate)
+                    )
                 })
                 .FirstOrDefaultAsync();
 
@@ -47,11 +57,7 @@ namespace RagChatbot.Business.Services
                 user.TokenIn = stats.TokenIn;
                 user.TokenOut = stats.TokenOut;
                 user.TodayChatCount = stats.MsgCount; // Reuse field for total message count in wallet view
-
-                var priceConfig = await _settingService.GetPricingConfigAsync();
-                decimal inRate = priceConfig.TokenInCostPerMillion / 1000000m;
-                decimal outRate = priceConfig.TokenOutCostPerMillion / 1000000m;
-                user.CostVnd = (stats.TokenIn * inRate + stats.TokenOut * outRate) * priceConfig.UsdVndRate;
+                user.CostVnd = stats.CostVnd;
             }
 
             return user;
@@ -96,19 +102,25 @@ namespace RagChatbot.Business.Services
             var users = await query.ToListAsync();
             
             var userIds = users.Select(u => u.Id).ToList();
+            var priceConfig = await _settingService.GetPricingConfigAsync();
+            decimal defaultInRate = priceConfig.TokenInCostPerMillion;
+            decimal defaultOutRate = priceConfig.TokenOutCostPerMillion;
+            decimal defaultUsdRate = priceConfig.UsdVndRate;
+
             var stats = await _context.ChatMessages
                 .Where(m => m.Session != null && userIds.Contains(m.Session.UserId))
                 .GroupBy(m => m.Session.UserId)
                 .Select(g => new {
                     UserId = g.Key,
                     TokenIn = g.Sum(m => (long)(m.TokenIn ?? 0)),
-                    TokenOut = g.Sum(m => (long)(m.TokenOut ?? 0))
+                    TokenOut = g.Sum(m => (long)(m.TokenOut ?? 0)),
+                    CostVnd = g.Sum(m =>
+                        (((m.TokenIn ?? 0) * (m.TokenInCostPerMillion ?? defaultInRate) / 1000000m) +
+                         ((m.TokenOut ?? 0) * (m.TokenOutCostPerMillion ?? defaultOutRate) / 1000000m)) *
+                        (m.UsdRate ?? defaultUsdRate)
+                    )
                 })
                 .ToDictionaryAsync(x => x.UserId, x => x);
-
-            var priceConfig = await _settingService.GetPricingConfigAsync();
-            decimal inRate = priceConfig.TokenInCostPerMillion / 1000000m;
-            decimal outRate = priceConfig.TokenOutCostPerMillion / 1000000m;
 
             return users.Select(u => {
                 var dto = MapToDto(u);
@@ -116,7 +128,7 @@ namespace RagChatbot.Business.Services
                 {
                     dto.TokenIn = s.TokenIn;
                     dto.TokenOut = s.TokenOut;
-                    dto.CostVnd = (s.TokenIn * inRate + s.TokenOut * outRate) * priceConfig.UsdVndRate;
+                    dto.CostVnd = s.CostVnd;
                 }
                 return dto;
             });

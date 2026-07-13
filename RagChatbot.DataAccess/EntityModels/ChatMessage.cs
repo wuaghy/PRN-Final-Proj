@@ -1,4 +1,4 @@
-﻿namespace RagChatbot.DataAccess.EntityModels
+namespace RagChatbot.DataAccess.EntityModels
 {
     public class ChatMessage
     {
@@ -13,6 +13,8 @@
         public int? TokenIn { get; set; }
         public int? TokenOut { get; set; }
         public decimal? UsdRate { get; set; } // Snapshot tỷ giá tại thời điểm chat
+        public decimal? TokenInCostPerMillion { get; set; } // Snapshot giá input/1M tokens
+        public decimal? TokenOutCostPerMillion { get; set; } // Snapshot giá output/1M tokens
 
         // Navigation Properties
         public ChatSession? Session { get; set; }

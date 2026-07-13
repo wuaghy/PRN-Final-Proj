@@ -31,23 +31,31 @@ namespace RagChatbot.Business.Services
             // 2. Thống kê lượng Token tiêu thụ từ ChatMessage
             var chatMetrics = await _context.ChatMessages
                 .Where(m => m.Role == "assistant" && (m.TokenIn != null || m.TokenOut != null))
-                .Select(m => new { m.TokenIn, m.TokenOut, m.UsdRate })
+                .Select(m => new { m.TokenIn, m.TokenOut, m.UsdRate, m.TokenInCostPerMillion, m.TokenOutCostPerMillion })
                 .ToListAsync();
 
             dto.TotalInputTokens = chatMetrics.Sum(m => (long)(m.TokenIn ?? 0));
             dto.TotalOutputTokens = chatMetrics.Sum(m => (long)(m.TokenOut ?? 0));
 
             var priceConfig = await _settingService.GetPricingConfigAsync();
-            decimal inputCostRate = priceConfig.TokenInCostPerMillion / 1000000m;
-            decimal outputCostRate = priceConfig.TokenOutCostPerMillion / 1000000m;
+            decimal defaultInputCostRate = priceConfig.TokenInCostPerMillion / 1000000m;
+            decimal defaultOutputCostRate = priceConfig.TokenOutCostPerMillion / 1000000m;
+            decimal defaultUsdRate = priceConfig.UsdVndRate;
 
-            dto.TotalCostUsd = (dto.TotalInputTokens * inputCostRate) + (dto.TotalOutputTokens * outputCostRate);
+            dto.TotalCostUsd = chatMetrics.Sum(m =>
+            {
+                decimal inRate = (m.TokenInCostPerMillion ?? priceConfig.TokenInCostPerMillion) / 1000000m;
+                decimal outRate = (m.TokenOutCostPerMillion ?? priceConfig.TokenOutCostPerMillion) / 1000000m;
+                return ((m.TokenIn ?? 0) * inRate) + ((m.TokenOut ?? 0) * outRate);
+            });
 
             // Tính toán chi phí quy đổi VND theo tỷ giá snapshot tại từng tin nhắn
             dto.TotalCostVnd = chatMetrics.Sum(m =>
             {
-                decimal msgCostUsd = ((m.TokenIn ?? 0) * inputCostRate) + ((m.TokenOut ?? 0) * outputCostRate);
-                decimal msgUsdRate = m.UsdRate ?? 25000m; // Fallback nếu tỷ giá null
+                decimal inRate = (m.TokenInCostPerMillion ?? priceConfig.TokenInCostPerMillion) / 1000000m;
+                decimal outRate = (m.TokenOutCostPerMillion ?? priceConfig.TokenOutCostPerMillion) / 1000000m;
+                decimal msgCostUsd = ((m.TokenIn ?? 0) * inRate) + ((m.TokenOut ?? 0) * outRate);
+                decimal msgUsdRate = m.UsdRate ?? defaultUsdRate; // Fallback nếu tỷ giá null
                 return msgCostUsd * msgUsdRate;
             });
 
@@ -199,6 +207,11 @@ namespace RagChatbot.Business.Services
 
         public async Task<IEnumerable<AppUserDto>> GetTopTokenConsumersAsync(int topCount = 10)
         {
+            var priceConfig = await _settingService.GetPricingConfigAsync();
+            decimal defaultInRate = priceConfig.TokenInCostPerMillion;
+            decimal defaultOutRate = priceConfig.TokenOutCostPerMillion;
+            decimal defaultUsdRate = priceConfig.UsdVndRate;
+
             var topStats = await _context.ChatMessages
                 .Where(m => m.Session != null && m.Session.User != null)
                 .GroupBy(m => new { m.Session.UserId, m.Session.User.Email, m.Session.User.FirstName, m.Session.User.LastName })
@@ -209,15 +222,16 @@ namespace RagChatbot.Business.Services
                     LastName = g.Key.LastName,
                     TokenIn = g.Sum(m => (long)(m.TokenIn ?? 0)),
                     TokenOut = g.Sum(m => (long)(m.TokenOut ?? 0)),
-                    TotalTokens = g.Sum(m => (long)(m.TokenIn ?? 0)) + g.Sum(m => (long)(m.TokenOut ?? 0))
+                    TotalTokens = g.Sum(m => (long)(m.TokenIn ?? 0)) + g.Sum(m => (long)(m.TokenOut ?? 0)),
+                    CostVnd = g.Sum(m =>
+                        (((m.TokenIn ?? 0) * (m.TokenInCostPerMillion ?? defaultInRate) / 1000000m) +
+                         ((m.TokenOut ?? 0) * (m.TokenOutCostPerMillion ?? defaultOutRate) / 1000000m)) *
+                        (m.UsdRate ?? defaultUsdRate)
+                    )
                 })
                 .OrderByDescending(x => x.TotalTokens)
                 .Take(topCount)
                 .ToListAsync();
-
-            var priceConfig = await _settingService.GetPricingConfigAsync();
-            decimal inRate = priceConfig.TokenInCostPerMillion / 1000000m;
-            decimal outRate = priceConfig.TokenOutCostPerMillion / 1000000m;
 
             return topStats.Select(s => new AppUserDto
             {
@@ -227,7 +241,7 @@ namespace RagChatbot.Business.Services
                 LastName = s.LastName,
                 TokenIn = s.TokenIn,
                 TokenOut = s.TokenOut,
-                CostVnd = (s.TokenIn * inRate + s.TokenOut * outRate) * priceConfig.UsdVndRate
+                CostVnd = s.CostVnd
             });
         }
     }

@@ -12,6 +12,8 @@ namespace RagChatbot.Business.DTOs
         public int? TokenIn { get; set; }
         public int? TokenOut { get; set; }
         public decimal? UsdRate { get; set; }
+        public decimal? TokenInCostPerMillion { get; set; }
+        public decimal? TokenOutCostPerMillion { get; set; }
     }
 
     public class CreateChatMessageDto
@@ -25,5 +27,7 @@ namespace RagChatbot.Business.DTOs
         public int? TokenIn { get; set; }
         public int? TokenOut { get; set; }
         public decimal? UsdRate { get; set; }
+        public decimal? TokenInCostPerMillion { get; set; }
+        public decimal? TokenOutCostPerMillion { get; set; }
     }
 }

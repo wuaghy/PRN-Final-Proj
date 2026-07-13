@@ -354,8 +354,8 @@ Nếu hoàn toàn không có thông tin nào liên quan trong ngữ cảnh, hãy
                         citationsJson = "[]";
                     }
 
-                    // TRUY VẤN TỶ GIÁ USD DYNAMIC TỪ APPSETTINGS
-                    decimal activeUsdRate = await _settingService.GetUsdRateAsync();
+                    // TRUY VẤN CẤU HÌNH GIÁ DYNAMIC TỪ APPSETTINGS
+                    var activePricing = await _settingService.GetPricingConfigAsync();
 
                     // Lưu Assistant Response kèm Metadata Tài chính & Token
                     var assistantMessage = new RagChatbot.Business.DTOs.CreateChatMessageDto
@@ -366,10 +366,12 @@ Nếu hoàn toàn không có thông tin nào liên quan trong ngữ cảnh, hãy
                         Citations = citationsJson,
                         TokenIn = capturedTokenIn,
                         TokenOut = capturedTokenOut,
-                        UsdRate = activeUsdRate
+                        UsdRate = activePricing.UsdVndRate,
+                        TokenInCostPerMillion = activePricing.TokenInCostPerMillion,
+                        TokenOutCostPerMillion = activePricing.TokenOutCostPerMillion
                     };
 
-                    // Lưu ý: Đảm bảo class CreateChatMessageDto hoặc tầng Service của bạn đã map 3 trường mới này vào Entity ChatMessage
+                    // Lưu ý: Đảm bảo class CreateChatMessageDto hoặc tầng Service của bạn đã map các trường mới này vào Entity ChatMessage
                     await _chatService.AddMessageAsync(assistantMessage);
 
                     // Gửi tín hiệu hoàn tất

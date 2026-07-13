@@ -284,7 +284,13 @@
                                                                     {
                                                                         var isChecked = Model.LecturerSubjects.ContainsKey(user.Id) && Model.LecturerSubjects[user.Id].Any(s => s.Id == sub.Id);
                                                                         <label class="flex items-center gap-2.5 p-2 rounded-xl border border-slate-100 dark:border-slate-850 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition cursor-pointer">
-                                                                            <input type="checkbox" name="subjectIds" value="@sub.Id" @(isChecked ? "checked" : "") class="rounded border-slate-350 dark:border-slate-700 text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer" />
+                                                                            <input type="checkbox" name="subjectIds" value="@sub.Id" @(isChecked ? "checked" : "")
+                                                                                    data-subject-code="@sub.Code"
+                                                                                    data-subject-name="@sub.Name"
+                                                                                    data-currently-assigned="@(sub.LecturerId.HasValue && sub.LecturerId.Value != user.Id ? "true" : "false")"
+                                                                                    data-current-lecturer-name="@sub.LecturerName"
+                                                                                    onchange="handleSubjectCheckboxChange(this)"
+                                                                                    class="rounded border-slate-350 dark:border-slate-700 text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer" />
                                                                             <div class="text-xs">
                                                                                 <span class="font-bold text-gray-800 dark:text-slate-200">@sub.Code</span>
                                                                                 <span class="text-slate-500 dark:text-slate-400 ml-1.5">— @sub.Name</span>
@@ -473,6 +479,19 @@
             } else {
                 modal.classList.add('hidden');
                 modal.classList.remove('flex');
+            }
+        }
+    }
+
+    function handleSubjectCheckboxChange(checkbox) {
+        if (checkbox.checked && checkbox.getAttribute('data-currently-assigned') === 'true') {
+            const subjectCode = checkbox.getAttribute('data-subject-code');
+            const subjectName = checkbox.getAttribute('data-subject-name');
+            const currentLecturer = checkbox.getAttribute('data-current-lecturer-name');
+            
+            const confirmed = confirm(`Môn học "${subjectCode} - ${subjectName}" đang được phân công cho giảng viên "${currentLecturer}". Bạn có chắc chắn muốn chuyển quyền phụ trách môn này sang giảng viên hiện tại?`);
+            if (!confirmed) {
+                checkbox.checked = false;
             }
         }
     }

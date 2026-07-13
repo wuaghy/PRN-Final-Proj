@@ -49,9 +49,11 @@
                                 <td class="px-6 py-4 font-mono text-xs font-bold text-slate-500 dark:text-slate-400">@subject.Code</td>
                                 <td class="px-6 py-4 font-bold text-gray-900 dark:text-slate-100">@subject.Name</td>
                                 <td class="px-6 py-4">
-                                    <form method="post" asp-page-handler="AssignLecturer" class="flex items-center gap-2">
+                                    <form method="post" asp-page-handler="AssignLecturer" onsubmit="return confirmAssign(this);" class="flex items-center gap-2">
                                         <input type="hidden" name="subjectId" value="@subject.Id" />
                                         <select name="lecturerId"
+                                                data-original-lecturer-id="@(subject.LecturerId ?? 0)"
+                                                data-original-lecturer-name="@(subject.LecturerName)"
                                                 class="text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 px-2 py-1.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                                             <option value="">— Chưa gán —</option>
                                             @foreach (var lecturer in Model.Lecturers)
@@ -112,5 +114,18 @@
         connection.start().catch(function (err) {
             return console.error(err.toString());
         });
+
+        function confirmAssign(form) {
+            const select = form.querySelector('select[name="lecturerId"]');
+            const selectedVal = select.value;
+            const originalLecturerId = select.getAttribute('data-original-lecturer-id');
+            const originalLecturerName = select.getAttribute('data-original-lecturer-name');
+
+            if (selectedVal && originalLecturerId && originalLecturerId !== "0" && selectedVal !== originalLecturerId) {
+                const selectedText = select.options[select.selectedIndex].text;
+                return confirm(`Môn học này đang được gán cho giảng viên "${originalLecturerName}". Bạn có chắc chắn muốn chuyển môn này sang cho giảng viên "${selectedText}"?`);
+            }
+            return true;
+        }
     </script>
 }

@@ -15,6 +15,12 @@ namespace RagChatbot.Business.DTOs
         public string Subscription { get; set; } = "Free";
         public int TodayChatCount { get; set; } = 0;
         public DateTime LastActiveDate { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
+
+        public long TokenIn { get; set; }
+        public long TokenOut { get; set; }
+        public decimal CostVnd { get; set; }
 
         public DepartmentDto? Department { get; set; }
     }

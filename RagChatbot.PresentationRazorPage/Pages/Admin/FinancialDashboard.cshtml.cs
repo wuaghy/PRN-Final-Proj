@@ -34,6 +34,8 @@ namespace RagChatbot.PresentationRazorPage.Pages.Admin
         public int TotalStudentsCount { get; set; }
         public int PremiumStudentsCount { get; set; }
         public List<DailyUsageDto> DailyTrends { get; set; } = new();
+        
+        public List<RagChatbot.Business.DTOs.AppUserDto> TopTokenConsumers { get; set; } = new();
 
         public async Task OnGetAsync()
         {
@@ -111,6 +113,9 @@ namespace RagChatbot.PresentationRazorPage.Pages.Admin
                     MessageCount = trend.MessageCount
                 });
             }
+
+            var topConsumers = await _financialService.GetTopTokenConsumersAsync(10);
+            TopTokenConsumers.AddRange(topConsumers);
         }
     }
 

@@ -6,6 +6,7 @@ namespace RagChatbot.Business.Interfaces
     {
         Task<AppUserDto?> GetByIdAsync(int id);
         Task<AppUserDto?> GetByEmailAsync(string email);
+        Task<AppUserDto?> GetUserTokenStatsAsync(int userId);
         Task<IEnumerable<AppUserDto>> GetAllUsersAsync();
         Task<IEnumerable<AppUserDto>> GetUsersByRoleAsync(string role);
         Task<IEnumerable<AppUserDto>> GetUsersAsync(string role, bool? isActive, string searchEmail);

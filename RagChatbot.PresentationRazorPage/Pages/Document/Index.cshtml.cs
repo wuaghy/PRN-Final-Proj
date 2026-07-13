@@ -67,6 +67,10 @@ namespace RagChatbot.PresentationRazorPage.Pages.Document
                     subjectsQuery = new List<RagChatbot.Business.DTOs.SubjectDto>();
                 }
             }
+            else if (User.IsInRole("Lecturer"))
+            {
+                subjectsQuery = subjectsQuery.Where(s => s.LecturerId == userId);
+            }
             else
             {
                 subjectsQuery = new List<RagChatbot.Business.DTOs.SubjectDto>();
@@ -76,10 +80,15 @@ namespace RagChatbot.PresentationRazorPage.Pages.Document
             var subjectIds = subjects.Select(s => s.Id).ToList();
 
             var documents = new List<RagChatbot.Business.DTOs.DocumentDto>();
+            var isLecturer = User.IsInRole("Lecturer");
 
             foreach (var subjectId in subjectIds)
             {
                 var docs = await _documentService.GetBySubjectIdAsync(subjectId);
+                if (isLecturer)
+                {
+                    docs = docs.Where(d => d.UploaderId == userId);
+                }
                 documents.AddRange(docs);
             }
 
@@ -123,16 +132,19 @@ namespace RagChatbot.PresentationRazorPage.Pages.Document
                 return RedirectToPage();
             }
 
-            var isHod = User.IsInRole("HeadOfDepartment");
-            if (isHod)
+            var isLecturer = User.IsInRole("Lecturer");
+            if (!isLecturer)
             {
-                var hodUser = await _userService.GetByIdAsync(userId);
-                if (subject.DepartmentId != hodUser?.DepartmentId)
-                {
-                    if (Request.Headers["Accept"].ToString().Contains("application/json")) return new JsonResult(new { success = false, message = "Môn học này không thuộc bộ môn của bạn." });
-                    TempData["Error"] = "Môn học này không thuộc bộ môn của bạn.";
-                    return RedirectToPage();
-                }
+                if (Request.Headers["Accept"].ToString().Contains("application/json")) return new JsonResult(new { success = false, message = "Bạn không có quyền tải tài liệu lên." });
+                TempData["Error"] = "Bạn không có quyền tải tài liệu lên.";
+                return RedirectToPage();
+            }
+
+            if (subject.LecturerId != userId)
+            {
+                if (Request.Headers["Accept"].ToString().Contains("application/json")) return new JsonResult(new { success = false, message = "Môn học này không thuộc quản lý của bạn." });
+                TempData["Error"] = "Môn học này không thuộc quản lý của bạn.";
+                return RedirectToPage();
             }
 
             if (files == null || files.Count == 0)
@@ -153,18 +165,23 @@ namespace RagChatbot.PresentationRazorPage.Pages.Document
                 string filePath;
                 string storageInfo;
 
+                // Buffer toàn bộ nội dung file vào MemoryStream để có thể dùng lại
+                // nếu Google Drive thất bại và cần fallback sang local storage.
+                using var fileBuffer = new MemoryStream();
+                await file.CopyToAsync(fileBuffer);
+
                 try
                 {
-                    using var stream = file.OpenReadStream();
-                    filePath = await driveService.UploadFileAsync(stream, file.FileName, file.ContentType);
+                    fileBuffer.Seek(0, SeekOrigin.Begin);
+                    filePath = await driveService.UploadFileAsync(fileBuffer, file.FileName, file.ContentType);
                     storageInfo = "Google Drive";
                 }
                 catch (Exception driveEx)
                 {
                     try
                     {
-                        using var stream = file.OpenReadStream();
-                        filePath = await localStorage.SaveFileAsync(stream, file.FileName);
+                        fileBuffer.Seek(0, SeekOrigin.Begin);
+                        filePath = await localStorage.SaveFileAsync(fileBuffer, file.FileName);
                         storageInfo = "local server";
                     }
                     catch (Exception localEx)
@@ -255,17 +272,7 @@ namespace RagChatbot.PresentationRazorPage.Pages.Document
 
             if (document == null) return new JsonResult(new { success = false, message = "Document not found." });
 
-            var isHod = User.IsInRole("HeadOfDepartment");
-            bool canDelete = false;
-            if (isHod)
-            {
-                var subject = await _subjectService.GetByIdAsync(document.SubjectId);
-                var hodUser = await _userService.GetByIdAsync(userId);
-                if (subject != null && subject.DepartmentId == hodUser?.DepartmentId)
-                {
-                    canDelete = true;
-                }
-            }
+            bool canDelete = User.IsInRole("Lecturer") && document.UploaderId == userId;
             if (!canDelete)
             {
                 return new JsonResult(new { success = false, message = "Bạn không có quyền xóa tài liệu này." });
@@ -296,6 +303,10 @@ namespace RagChatbot.PresentationRazorPage.Pages.Document
                     canToggle = true;
                 }
             }
+            else if (User.IsInRole("Lecturer") && document.UploaderId == userId)
+            {
+                canToggle = true;
+            }
 
             if (!canToggle)
             {
@@ -318,17 +329,7 @@ namespace RagChatbot.PresentationRazorPage.Pages.Document
 
             if (document == null) return new JsonResult(new { success = false, message = "Document not found." });
 
-            var isHod = User.IsInRole("HeadOfDepartment");
-            bool canRename = false;
-            if (isHod)
-            {
-                var subject = await _subjectService.GetByIdAsync(document.SubjectId);
-                var hodUser = await _userService.GetByIdAsync(userId);
-                if (subject != null && subject.DepartmentId == hodUser?.DepartmentId)
-                {
-                    canRename = true;
-                }
-            }
+            bool canRename = User.IsInRole("Lecturer") && document.UploaderId == userId;
             if (!canRename)
             {
                 return new JsonResult(new { success = false, message = "Bạn không có quyền đổi tên tài liệu này." });

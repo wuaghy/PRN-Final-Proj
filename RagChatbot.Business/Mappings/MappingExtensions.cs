@@ -142,7 +142,12 @@ namespace RagChatbot.Business.Mappings
                 Role = entity.Role,
                 Content = entity.Content,
                 Citations = entity.Citations,
-                Timestamp = entity.Timestamp
+                Timestamp = entity.Timestamp,
+                TokenIn = entity.TokenIn,
+                TokenOut = entity.TokenOut,
+                UsdRate = entity.UsdRate,
+                TokenInCostPerMillion = entity.TokenInCostPerMillion,
+                TokenOutCostPerMillion = entity.TokenOutCostPerMillion
             };
         }
 
@@ -155,7 +160,12 @@ namespace RagChatbot.Business.Mappings
                 Role = dto.Role,
                 Content = dto.Content,
                 Citations = dto.Citations,
-                Timestamp = dto.Timestamp
+                Timestamp = dto.Timestamp,
+                TokenIn = dto.TokenIn,
+                TokenOut = dto.TokenOut,
+                UsdRate = dto.UsdRate,
+                TokenInCostPerMillion = dto.TokenInCostPerMillion,
+                TokenOutCostPerMillion = dto.TokenOutCostPerMillion
             };
         }
     }

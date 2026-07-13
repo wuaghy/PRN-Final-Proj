@@ -71,6 +71,40 @@ namespace RagChatbot.Business.Services
             await _repo.SaveChangesAsync();
         }
 
+        public async Task<PricingConfig> GetPricingConfigAsync()
+        {
+            var map = await _repo.Query().ToDictionaryAsync(s => s.Key, s => s.Value);
+            var cfg = new PricingConfig();
+
+            var inv = CultureInfo.InvariantCulture;
+
+            if (map.TryGetValue("UsdVndRate", out var usd) && decimal.TryParse(usd, NumberStyles.Any, inv, out var u)) cfg.UsdVndRate = u;
+            if (map.TryGetValue("Price.TokenIn.Usd", out var ti) && decimal.TryParse(ti, NumberStyles.Any, inv, out var i)) cfg.TokenInCostPerMillion = i;
+            if (map.TryGetValue("Price.TokenOut.Usd", out var to) && decimal.TryParse(to, NumberStyles.Any, inv, out var o)) cfg.TokenOutCostPerMillion = o;
+
+            return cfg;
+        }
+
+        public async Task SavePricingConfigAsync(PricingConfig c)
+        {
+            var map = await _repo.Query().ToDictionaryAsync(s => s.Key, s => s);
+            var toAdd = new List<AppSetting>();
+            var inv = CultureInfo.InvariantCulture;
+
+            Upsert(map, toAdd, "UsdVndRate", c.UsdVndRate.ToString(inv));
+            Upsert(map, toAdd, "Price.TokenIn.Usd", c.TokenInCostPerMillion.ToString(inv));
+            Upsert(map, toAdd, "Price.TokenOut.Usd", c.TokenOutCostPerMillion.ToString(inv));
+
+            if (toAdd.Count > 0) await _repo.AddRangeAsync(toAdd);
+            await _repo.SaveChangesAsync();
+        }
+
+        public async Task<decimal> GetUsdRateAsync()
+        {
+            var setting = await _repo.Query().FirstOrDefaultAsync(s => s.Key == "UsdVndRate");
+            return decimal.TryParse(setting?.Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsedRate) ? parsedRate : 25000m;
+        }
+
         private void Upsert(Dictionary<string, AppSetting> map, List<AppSetting> toAdd, string key, string value)
         {
             if (map.TryGetValue(key, out var existing))

@@ -138,10 +138,28 @@ namespace RagChatbot.Business.Services
                 foreach (var val in valuesArray.EnumerateArray())
                     values[i++] = val.GetSingle();
 
+                // gemini-embedding-001 does NOT auto-normalize truncated (non-3072) output
+                // dimensions (MRL). We request outputDimensionality=768 above, so we must
+                // L2-normalize manually or cosine/L2 similarity in pgvector will be skewed.
+                NormalizeInPlace(values);
+
                 results.Add(new ReadOnlyMemory<float>(values));
             }
 
             return results;
+        }
+
+        private static void NormalizeInPlace(float[] values)
+        {
+            double sumSquares = 0;
+            for (int i = 0; i < values.Length; i++)
+                sumSquares += (double)values[i] * values[i];
+
+            var norm = Math.Sqrt(sumSquares);
+            if (norm <= double.Epsilon) return; // avoid divide-by-zero on an all-zero vector
+
+            for (int i = 0; i < values.Length; i++)
+                values[i] = (float)(values[i] / norm);
         }
     }
 #pragma warning restore SKEXP0001

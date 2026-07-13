@@ -9,5 +9,14 @@ namespace RagChatbot.Business.Interfaces
 
         /// <summary>Ghi đè toàn bộ cấu hình chunking (upsert từng key).</summary>
         Task SaveChunkConfigAsync(ChunkConfig config);
+
+        /// <summary>Lấy cấu hình giá (Tỷ giá USD, Giá Token In/Out).</summary>
+        Task<PricingConfig> GetPricingConfigAsync();
+
+        /// <summary>Lưu cấu hình giá.</summary>
+        Task SavePricingConfigAsync(PricingConfig config);
+
+        /// <summary>Lấy tỷ giá USD quy đổi hiện hành.</summary>
+        Task<decimal> GetUsdRateAsync();
     }
 }

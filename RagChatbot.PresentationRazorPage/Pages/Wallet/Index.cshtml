@@ -1,4 +1,4 @@
-﻿@page
+@page
 @model RagChatbot.PresentationRazorPage.Pages.Wallet.IndexModel
 @{
     ViewData["Title"] = "Kết quả thanh toán VNPAY";
@@ -35,6 +35,31 @@
     {
         <div class="bg-slate-800 border border-slate-700 p-4 rounded-md my-5 text-slate-300 text-sm">
             💡 Chào mừng bạn đến với trang thanh toán ví. Vui lòng quay lại trang tài liệu để chọn chức năng nâng cấp tài khoản Premium.
+        </div>
+    }
+
+    @if (Model.UserStats != null && Model.UserStats.CostVnd > 0)
+    {
+        <div class="bg-indigo-950/40 border border-indigo-900 rounded-lg p-5 mb-5 mt-2">
+            <h3 class="text-indigo-400 font-semibold mb-3 flex items-center gap-2">
+                <i class="fa-solid fa-gift"></i> Thống kê Hệ thống tài trợ AI
+            </h3>
+            <p class="text-sm text-slate-300 mb-4">
+                Đến hiện tại, hệ thống đã tài trợ toàn bộ chi phí xử lý AI cho tài khoản của bạn:
+            </p>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-slate-900/50 p-3 rounded-md border border-slate-800">
+                    <div class="text-xs text-slate-400 mb-1">Tổng Token (In/Out)</div>
+                    <div class="font-bold text-teal-400">@((Model.UserStats.TokenIn + Model.UserStats.TokenOut).ToString("N0"))</div>
+                </div>
+                <div class="bg-slate-900/50 p-3 rounded-md border border-slate-800">
+                    <div class="text-xs text-slate-400 mb-1">Tổng Chi phí Ước tính</div>
+                    <div class="font-bold text-amber-400">@Model.UserStats.CostVnd.ToString("N0") VNĐ</div>
+                </div>
+            </div>
+            <p class="text-xs text-slate-500 mt-4 italic">
+                * Bạn có thể tiếp tục sử dụng miễn phí, hoặc xem xét nâng cấp Premium để trải nghiệm thêm các tính năng độc quyền và hỗ trợ duy trì hệ thống.
+            </p>
         </div>
     }
 

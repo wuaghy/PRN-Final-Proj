@@ -1,0 +1,149 @@
+@page
+@model RagChatbot.PresentationRazorPage.Pages.PremiumModel
+@{
+    ViewData["Title"] = "Gói dịch vụ Premium";
+    bool isPremium = Model.CurrentUserDto?.Subscription == "Premium";
+}
+
+<div class="flex-1 overflow-y-auto px-6 py-12 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 transition-colors duration-200">
+    <div class="max-w-4xl mx-auto space-y-12">
+        
+        <!-- Header Section -->
+        <div class="text-center space-y-4">
+            <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center justify-center gap-3">
+                <span class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center shadow-lg shadow-amber-500/10 animate-bounce">
+                    <i class="fa-solid fa-crown text-xl"></i>
+                </span>
+                Nâng Cấp Trải Nghiệm Học Tập AI
+            </h1>
+            <p class="text-slate-500 dark:text-slate-400 max-w-xl mx-auto text-sm md:text-base leading-relaxed">
+                Mở khóa tối đa sức mạnh của trí tuệ nhân tạo để tra cứu tài liệu học tập thần tốc và giải đáp không giới hạn.
+            </p>
+        </div>
+
+        @if (isPremium)
+        {
+            <!-- Premium Active Card -->
+            <div class="bg-gradient-to-r from-amber-500/20 via-yellow-500/10 to-amber-500/20 border border-amber-500/30 rounded-3xl p-8 text-center space-y-4 shadow-xl shadow-amber-500/5 max-w-lg mx-auto backdrop-blur-sm">
+                <div class="w-16 h-16 bg-gradient-to-tr from-amber-500 to-yellow-400 text-white rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-amber-500/20">
+                    <i class="fa-solid fa-crown text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-bold text-amber-700 dark:text-amber-400">Bạn Đang Sở Hữu Gói Premium</h3>
+                <p class="text-xs text-slate-650 dark:text-slate-350 max-w-md mx-auto">
+                    Tài khoản của bạn hiện đang có đầy đủ các quyền lợi cao cấp nhất. Cảm ơn bạn đã tin dùng và ủng hộ sự phát triển của hệ thống!
+                </p>
+                <div class="pt-2">
+                    <a href="/Index" class="inline-flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-450 text-white font-semibold text-sm rounded-xl shadow-md transition-all duration-200 hover:scale-105 active:scale-95">
+                        <i class="fa-solid fa-comments"></i> Chat ngay với AI
+                    </a>
+                </div>
+            </div>
+        }
+        else
+        {
+            <!-- pricing grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch max-w-3xl mx-auto">
+                
+                <!-- Free Package Card -->
+                <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 flex flex-col justify-between shadow-md transition-all duration-200 hover:shadow-lg dark:hover:border-slate-700/50">
+                    <div class="space-y-6">
+                        <div class="space-y-2">
+                            <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-full">Gói Cơ Bản</span>
+                            <h3 class="text-2xl font-bold text-slate-850 dark:text-white">Free</h3>
+                            <p class="text-xs text-slate-450 dark:text-slate-400">Dành cho trải nghiệm cơ bản và tìm hiểu hệ thống.</p>
+                        </div>
+                        <div class="text-3xl font-extrabold text-slate-850 dark:text-white">
+                            0đ <span class="text-xs font-normal text-slate-400 dark:text-slate-500">/ Vĩnh viễn</span>
+                        </div>
+                        <ul class="space-y-3.5 pt-4 border-t border-slate-100 dark:border-slate-800">
+                            <li class="flex items-start gap-3 text-xs">
+                                <span class="w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-450 flex items-center justify-center flex-shrink-0">
+                                    <i class="fa-solid fa-check text-[10px]"></i>
+                                </span>
+                                <span class="text-slate-600 dark:text-slate-350">Hỏi đáp AI giải đáp kiến thức cốt lõi</span>
+                            </li>
+                            <li class="flex items-start gap-3 text-xs">
+                                <span class="w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-450 flex items-center justify-center flex-shrink-0">
+                                    <i class="fa-solid fa-check text-[10px]"></i>
+                                </span>
+                                <span class="text-slate-600 dark:text-slate-350">Tặng sẵn <strong>20 câu hỏi/ngày</strong></span>
+                            </li>
+                            <li class="flex items-start gap-3 text-xs">
+                                <span class="w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-450 flex items-center justify-center flex-shrink-0">
+                                    <i class="fa-solid fa-check text-[10px]"></i>
+                                </span>
+                                <span class="text-slate-600 dark:text-slate-350">Tra cứu danh mục tài liệu sẵn có</span>
+                            </li>
+                            <li class="flex items-start gap-3 text-xs">
+                                <span class="w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-450 flex items-center justify-center flex-shrink-0">
+                                    <i class="fa-solid fa-check text-[10px]"></i>
+                                </span>
+                                <span class="text-slate-600 dark:text-slate-350">Hỗ trợ phản hồi AI tiêu chuẩn</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="pt-8">
+                        <button disabled class="w-full py-3 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-550 font-bold text-sm rounded-xl cursor-not-allowed">
+                            Đang sử dụng
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Premium Package Card -->
+                <div class="relative bg-[#0f172a] border-2 border-amber-500 rounded-3xl p-8 flex flex-col justify-between shadow-xl shadow-amber-500/5 before:absolute before:inset-0 before:rounded-3xl before:bg-gradient-to-b before:from-amber-550/10 before:to-transparent before:pointer-events-none">
+                    <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 text-[10px] font-black uppercase tracking-wider rounded-full shadow-md shadow-amber-500/10">
+                        Khuyên Dùng
+                    </div>
+                    <div class="space-y-6 relative z-10">
+                        <div class="space-y-2">
+                            <span class="text-[10px] font-bold text-amber-400 uppercase tracking-widest bg-amber-500/10 px-2.5 py-1 rounded-full">Gói Đặc Quyền</span>
+                            <h3 class="text-2xl font-bold text-white flex items-center gap-2">
+                                Premium
+                                <i class="fa-solid fa-crown text-amber-500 text-base"></i>
+                            </h3>
+                            <p class="text-xs text-slate-400">Dành cho học sinh muốn nâng cao hiệu quả học tập đột phá.</p>
+                        </div>
+                        <div class="text-3xl font-extrabold text-white">
+                            100.000đ <span class="text-xs font-normal text-slate-550">/ Vĩnh viễn</span>
+                        </div>
+                        <ul class="space-y-3.5 pt-4 border-t border-slate-800">
+                            <li class="flex items-start gap-3 text-xs">
+                                <span class="w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-450 flex items-center justify-center flex-shrink-0">
+                                    <i class="fa-solid fa-check text-[10px]"></i>
+                                </span>
+                                <span class="text-slate-300">Hỏi đáp AI không giới hạn câu hỏi</span>
+                            </li>
+                            <li class="flex items-start gap-3 text-xs">
+                                <span class="w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-450 flex items-center justify-center flex-shrink-0">
+                                    <i class="fa-solid fa-check text-[10px]"></i>
+                                </span>
+                                <span class="text-slate-300">Đọc toàn bộ tài liệu học tập tại thư viện</span>
+                            </li>
+                            <li class="flex items-start gap-3 text-xs">
+                                <span class="w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-450 flex items-center justify-center flex-shrink-0">
+                                    <i class="fa-solid fa-check text-[10px]"></i>
+                                </span>
+                                <span class="text-slate-300">Ưu tiên phản hồi từ AI tốc độ cao</span>
+                            </li>
+                            <li class="flex items-start gap-3 text-xs">
+                                <span class="w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-450 flex items-center justify-center flex-shrink-0">
+                                    <i class="fa-solid fa-check text-[10px]"></i>
+                                </span>
+                                <span class="text-slate-300">Không bị quảng cáo làm phiền</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="pt-8 relative z-10">
+                        <form method="post" asp-page-handler="PayPremium">
+                            <button type="submit" class="w-full py-3 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-450 hover:to-yellow-350 text-slate-950 font-black text-sm rounded-xl transition shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 cursor-pointer hover:scale-[1.02] active:scale-[0.98]">
+                                <i class="fa-solid fa-crown"></i> Nâng cấp ngay qua VNPAY
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+            </div>
+        }
+
+    </div>
+</div>

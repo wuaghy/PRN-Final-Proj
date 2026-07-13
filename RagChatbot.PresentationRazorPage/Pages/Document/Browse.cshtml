@@ -50,15 +50,6 @@
                 Tổng số: @Model.Documents.Count() tài liệu sẵn sàng
             </span>
 
-            @if (User.Identity?.IsAuthenticated == true && User.IsInRole("Student") && !canReadEverything)
-            {
-                @* VỊ TRÍ 1 ĐÃ ĐƯỢC SỬA: Gọi trực tiếp sang Page Wallet *@
-                <form method="post" asp-page="/Wallet/Index" asp-page-handler="PayPremium">
-                    <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white shadow-sm shadow-amber-500/20 transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer">
-                        <i class="fa-solid fa-crown text-[10px]"></i> Nâng cấp Premium qua VNPAY
-                    </button>
-                </form>
-            }
         </div>
     </div>
 

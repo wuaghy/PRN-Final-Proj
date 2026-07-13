@@ -356,6 +356,11 @@
                                 <i class="fa-solid fa-book-open text-xs"></i> Thư viện tài liệu
                             </a>
 
+                            <a asp-page="/Premium"
+                               class="nav-link flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-500 dark:text-slate-300 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors">
+                                <i class="fa-solid fa-crown text-xs text-amber-500"></i> Nâng cấp Premium
+                            </a>
+
                             <button onclick="toggleContactModal(true)"
                                     class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-500 dark:text-slate-300 hover:text-orange-600 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition-colors cursor-pointer">
                                 <i class="fa-solid fa-triangle-exclamation text-xs text-orange-500 animate-pulse"></i> Báo lỗi & Góp ý
@@ -471,12 +476,12 @@
         // Tối ưu hóa logic Highlighting Nav Link linh hoạt theo URL cụ thể
         const currentPath = window.location.pathname.toLowerCase().replace(/\/$/, "");
         document.querySelectorAll('.nav-link').forEach(link => {
-            const href = link.getAttribute('href')?.toLowerCase() ?? '';
+            const href = (link.getAttribute('href')?.toLowerCase() ?? '').replace(/\/$/, "");
 
             // Xử lý logic chuẩn hóa so sánh chuỗi URL
             if (currentPath === href ||
                (currentPath === "" && href.includes("home/index")) ||
-               (currentPath.startsWith(href) && href !== "/admin" && href !== "")) {
+               (currentPath.startsWith(href + "/") && href !== "/admin" && href !== "")) {
                 link.classList.add('active');
             } else if (href === "/admin" && (currentPath === "/admin" || currentPath === "/admin/index")) {
                 // Trường hợp đặc biệt của trang quản lý Giảng viên mặc định

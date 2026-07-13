@@ -230,25 +230,41 @@ namespace RagChatbot.Business.Services
                     // BÓC TÁCH METADATA TOKEN (Thường nằm ở chunk cuối cùng hoặc rải rác tùy phiên bản SK)
                     if (currentContent?.Metadata != null && onTokenUsageCaptured != null)
                     {
-                        // Hỗ trợ bóc tách linh hoạt cho cả OpenAI và Gemini Metadata định dạng phổ biến của Semantic Kernel
-                        if (currentContent.Metadata.TryGetValue("Usage", out var usageObj) ||
-                            currentContent.Metadata.TryGetValue("UsageMetadata", out usageObj))
+                        int inputTokens = 0;
+                        int outputTokens = 0;
+
+                        // 1. Trường hợp Gemini (Lưu trực tiếp trong Metadata)
+                        if (currentContent.Metadata.TryGetValue("PromptTokenCount", out var ptcObj) && ptcObj is int ptcVal)
+                            inputTokens = ptcVal;
+                        
+                        if (currentContent.Metadata.TryGetValue("CandidatesTokenCount", out var ctcObj) && ctcObj is int ctcVal)
+                            outputTokens = ctcVal;
+
+                        // 2. Trường hợp OpenAI (Lưu trong object Usage hoặc UsageMetadata)
+                        if (inputTokens == 0 && outputTokens == 0)
                         {
-                            dynamic? usage = usageObj;
-                            if (usage != null)
+                            if (currentContent.Metadata.TryGetValue("Usage", out var usageObj) ||
+                                currentContent.Metadata.TryGetValue("UsageMetadata", out usageObj))
                             {
                                 try
                                 {
-                                    int inputTokens = usage.PromptTokens ?? usage.InputTokens ?? 0;
-                                    int outputTokens = usage.CompletionTokens ?? usage.OutputTokens ?? 0;
+                                    var json = System.Text.Json.JsonSerializer.Serialize(usageObj);
+                                    using var doc = System.Text.Json.JsonDocument.Parse(json);
+                                    var root = doc.RootElement;
 
-                                    if (inputTokens > 0 || outputTokens > 0)
-                                    {
-                                        onTokenUsageCaptured(inputTokens, outputTokens);
-                                    }
+                                    if (root.TryGetProperty("PromptTokens", out var pt)) inputTokens = pt.GetInt32();
+                                    else if (root.TryGetProperty("InputTokens", out var it)) inputTokens = it.GetInt32();
+
+                                    if (root.TryGetProperty("CompletionTokens", out var ct)) outputTokens = ct.GetInt32();
+                                    else if (root.TryGetProperty("OutputTokens", out var ot)) outputTokens = ot.GetInt32();
                                 }
-                                catch { /* Tránh lỗi ép kiểu động làm sập luồng stream */ }
+                                catch { /* Bỏ qua lỗi parse JSON */ }
                             }
+                        }
+
+                        if (inputTokens > 0 || outputTokens > 0)
+                        {
+                            onTokenUsageCaptured(inputTokens, outputTokens);
                         }
                     }
                 }

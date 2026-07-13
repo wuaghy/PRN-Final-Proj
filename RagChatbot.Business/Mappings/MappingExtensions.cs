@@ -155,7 +155,10 @@ namespace RagChatbot.Business.Mappings
                 Role = dto.Role,
                 Content = dto.Content,
                 Citations = dto.Citations,
-                Timestamp = dto.Timestamp
+                Timestamp = dto.Timestamp,
+                TokenIn = dto.TokenIn,
+                TokenOut = dto.TokenOut,
+                UsdRate = dto.UsdRate
             };
         }
     }

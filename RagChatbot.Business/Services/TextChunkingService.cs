@@ -24,7 +24,8 @@ namespace RagChatbot.Business.Services
             string cleanedText = Regex.Replace(rawText, @"NGUYÊN LÝ KẾ TOÁN\s*\.\s*", " ");
 
             // Capture and collapse all formatting spaces or layout newlines around numeric periods
-            while (Regex.IsMatch(cleanedText, @"(\d+)\s*\.\s*(\d+)"))
+            int safety = 0;
+            while (safety++ < 100 && Regex.IsMatch(cleanedText, @"(\d+)\s*\.\s*(\d+)"))
             {
                 cleanedText = Regex.Replace(cleanedText, @"(\d+)\s*\.\s*(\d+)", "$1ALPHANUMERICDOTMASK$2");
             }

@@ -44,7 +44,7 @@
                 </div>
 
                 <!-- Manual Form -->
-                <form asp-page="/Admin/Index" asp-page-handler="CreateSingleUser" method="post" id="formUserManual" class="space-y-4">
+                <form asp-page="/Admin/Student" asp-page-handler="CreateSingleUser" method="post" id="formUserManual" class="space-y-4">
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">Họ</label>
@@ -72,7 +72,7 @@
                 </form>
 
                 <!-- Bulk Form -->
-                <form asp-page="/Admin/Index" asp-page-handler="CreateUsers" method="post" enctype="multipart/form-data" id="formUserBulk" class="space-y-4 hidden">
+                <form asp-page="/Admin/Student" asp-page-handler="CreateUsers" method="post" enctype="multipart/form-data" id="formUserBulk" class="space-y-4 hidden">
                     <input type="hidden" name="role" value="Student" />
                     <div>
                         <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">
@@ -95,7 +95,7 @@
             
             <!-- Form Tìm kiếm -->
             <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
-                <form asp-page="/Admin/Index" method="get" class="flex gap-2">
+                <form asp-page="/Admin/Student" method="get" class="flex gap-2">
                     <div class="relative flex-1">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <i class="fa-solid fa-magnifying-glass text-slate-400"></i>
@@ -107,7 +107,7 @@
                     </button>
                     @if(!string.IsNullOrEmpty(ViewContext.HttpContext.Request.Query["searchEmail"]))
                     {
-                        <a asp-page="/Admin/Index" class="bg-rose-100 text-rose-600 hover:bg-rose-200 dark:bg-rose-500/20 dark:text-rose-400 dark:hover:bg-rose-500/30 text-sm font-semibold py-2.5 px-4 rounded-xl transition-all flex items-center">
+                        <a asp-page="/Admin/Student" class="bg-rose-100 text-rose-600 hover:bg-rose-200 dark:bg-rose-500/20 dark:text-rose-400 dark:hover:bg-rose-500/30 text-sm font-semibold py-2.5 px-4 rounded-xl transition-all flex items-center">
                             <i class="fa-solid fa-xmark"></i>
                         </a>
                     }
@@ -183,7 +183,7 @@
                                                         title="Xem chi tiết Token">
                                                     <i class="fa-solid fa-chart-line text-sm"></i>
                                                 </button>
-                                                <form asp-page="/Admin/Index" asp-page-handler="ResetPassword" method="post" class="m-0">
+                                                <form asp-page="/Admin/Student" asp-page-handler="ResetPassword" method="post" class="m-0">
                                                     <input type="hidden" name="id" value="@user.Id" />
                                                     <button type="submit" 
                                                         onclick="return confirm('Bạn có chắc chắn muốn đặt lại mật khẩu về 123456 cho @roleText.ToLower() này?');"
@@ -192,7 +192,7 @@
                                                         <i class="fa-solid fa-key text-sm"></i>
                                                     </button>
                                                 </form>
-                                                <form asp-page="/Admin/Index" asp-page-handler="DeleteUser" method="post" class="m-0">
+                                                <form asp-page="/Admin/Student" asp-page-handler="DeleteUser" method="post" class="m-0">
                                                     <input type="hidden" name="id" value="@user.Id" />
                                                     <button type="submit" 
                                                         onclick="return confirm('Bạn có chắc chắn muốn xóa @roleText.ToLower() này?');"
@@ -250,7 +250,7 @@
                                         
                                         <td class="px-6 py-2.5">
                                             <div class="flex items-center justify-end gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
-                                                <form asp-page="/Admin/Index" asp-page-handler="RestoreUser" method="post" class="m-0">
+                                                <form asp-page="/Admin/Student" asp-page-handler="RestoreUser" method="post" class="m-0">
                                                     <input type="hidden" name="id" value="@user.Id" />
                                                     <button type="submit" 
                                                         onclick="return confirm('Bạn có chắc chắn muốn khôi phục hoạt động cho @roleText.ToLower() này?');"

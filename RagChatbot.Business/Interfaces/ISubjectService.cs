@@ -17,5 +17,7 @@ namespace RagChatbot.Business.Interfaces
 
         /// <summary>Gán/gỡ giảng viên cho môn học. lecturerId null = gỡ. Trả về false nếu không tìm thấy môn.</summary>
         Task<bool> AssignLecturerAsync(int subjectId, int? lecturerId);
+
+        Task<IEnumerable<SubjectTermDto>> GetSubjectTermHistoryAsync(int subjectId);
     }
 }

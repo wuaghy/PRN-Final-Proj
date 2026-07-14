@@ -1,8 +1,22 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using RagChatbot.Business.Interfaces;
 using RagChatbot.Business.Extensions;
+using Serilog;
+using Serilog.Events;
+
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+    .MinimumLevel.Override("Microsoft.Hosting.Lifetime", LogEventLevel.Information)
+    .Enrich.FromLogContext()
+    .WriteTo.Console(
+        outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}",
+        theme: Serilog.Sinks.SystemConsole.Themes.AnsiConsoleTheme.Code
+    )
+    .CreateLogger();
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Host.UseSerilog();
 // Load .env file if it exists
 // --- ĐOẠN ĐƯỢC SỬA: Tự động quét ngược thư mục cha để tìm file .env ---
 var currentDir = Directory.GetCurrentDirectory();

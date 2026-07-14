@@ -35,7 +35,6 @@
                         <th class="p-4 w-48">Thời gian</th>
                         <th class="p-4 w-56">Người thực hiện</th>
                         <th class="p-4 w-44">Hành động</th>
-                        <th class="p-4 w-32">Đối tượng ID</th>
                         <th class="p-4">Chi tiết hành động</th>
                     </tr>
                 </thead>
@@ -43,7 +42,7 @@
                     @if (Model.AuditLogs == null || !Model.AuditLogs.Any())
                     {
                         <tr>
-                            <td colspan="6" class="p-8 text-center text-slate-400 dark:text-slate-500">
+                            <td colspan="5" class="p-8 text-center text-slate-400 dark:text-slate-500">
                                 <i class="fa-solid fa-folder-open text-3xl mb-2 block"></i>
                                 Hiện tại chưa có bản ghi nhật ký kiểm toán nào.
                             </td>
@@ -72,23 +71,20 @@
                                 <td class="p-4">
                                     @if (log.Action.Contains("Assign") || log.Action.Contains("HOD"))
                                     {
-                                        <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200/30">@log.Action</span>
+                                        <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200/30 whitespace-nowrap">@log.Action</span>
                                     }
                                     else if (log.Action.Contains("Delete") || log.Action.Contains("End"))
                                     {
-                                        <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400 border border-rose-200/30">@log.Action</span>
+                                        <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400 border border-rose-200/30 whitespace-nowrap">@log.Action</span>
                                     }
                                     else if (log.Action.Contains("Create") || log.Action.Contains("Update"))
                                     {
-                                        <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400 border border-indigo-200/30">@log.Action</span>
+                                        <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400 border border-indigo-200/30 whitespace-nowrap">@log.Action</span>
                                     }
                                     else
                                     {
-                                        <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">@log.Action</span>
+                                        <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 whitespace-nowrap">@log.Action</span>
                                     }
-                                </td>
-                                <td class="p-4 font-mono text-xs text-slate-500">
-                                    @log.TargetObjectId
                                 </td>
                                 <td class="p-4 text-slate-600 dark:text-slate-400 max-w-md break-words">
                                     @log.Details
@@ -97,7 +93,7 @@
                         }
                     }
                     <tr id="noLogsRow" style="display: none;">
-                        <td colspan="6" class="p-8 text-center text-slate-400 italic">
+                        <td colspan="5" class="p-8 text-center text-slate-400 italic">
                             Không tìm thấy bản ghi nhật ký nào khớp với từ khóa tìm kiếm.
                         </td>
                     </tr>

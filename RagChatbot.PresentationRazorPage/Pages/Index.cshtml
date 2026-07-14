@@ -383,6 +383,7 @@ function createAiBubble() {
 
 function showThinkingIndicator() {
     createAiBubble();
+    currentAssistantMarkdown = "";
     currentAssistantMessageDiv.innerHTML = `
         <div class="flex items-center gap-2 text-emerald-600">
             <span class="text-xs italic font-medium">AI đang xử lý</span>

@@ -137,7 +137,7 @@
                             @if (!Model.SubjectsList.Any())
                             {
                                 <tr>
-                                    <td colspan="5" class="px-6 py-12 text-center text-slate-500">Chưa có môn học nào.</td>
+                                    <td colspan="6" class="px-6 py-12 text-center text-slate-500">Chưa có môn học nào.</td>
                                 </tr>
                             }
                             else
@@ -147,7 +147,9 @@
                                     <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group">
                                         <td class="px-6 py-4 font-mono text-xs font-bold text-slate-500 dark:text-slate-400 whitespace-nowrap">@subject.Code</td>
 
-                                        <td class="px-6 py-4 font-bold text-gray-900 dark:text-slate-100">@subject.Name</td>
+                                        <td class="px-6 py-4 font-bold text-gray-900 dark:text-slate-100">
+                                            <a href="javascript:void(0)" onclick="openSubjectHistoryModal(@subject.Id, '@subject.Name.Replace("'", "\\'")')" class="hover:text-blue-500 transition-colors cursor-pointer decoration-blue-500/30 underline-offset-4 hover:underline">@subject.Name</a>
+                                        </td>
 
                                         <td class="px-6 py-4">
                                             @if (!string.IsNullOrEmpty(subject.DepartmentName))
@@ -284,7 +286,91 @@
     function closeEditModal() {
         document.getElementById('editSubjectModal').classList.add('hidden');
     }
+
+    function openSubjectHistoryModal(id, name) {
+        document.getElementById('subTermHistoryTitle').innerText = 'Nhiệm kỳ môn: ' + name;
+        const modal = document.getElementById('subTermHistoryModal');
+        const container = document.getElementById('subTermHistoryModalContainer');
+        const list = document.getElementById('subTermHistoryList');
+        
+        list.innerHTML = '<li class="text-center text-slate-500 text-sm py-4"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Đang tải lịch sử...</li>';
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        setTimeout(() => {
+            container.classList.remove('scale-95');
+            container.classList.add('scale-100');
+        }, 10);
+
+        fetch(`/Admin/Subjects?handler=SubjectHistory&subjectId=${id}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.length > 0) {
+                    list.innerHTML = data.map(item => {
+                        const endAtStr = item.endAt ? item.endAt : '...';
+                        const statusClass = item.endAt ? 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400' : 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 font-bold';
+                        return `
+                            <li class="flex items-center justify-between p-3 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30">
+                                <div class="flex items-center gap-3">
+                                    <span class="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                                        <i class="fa-solid fa-user"></i>
+                                    </span>
+                                    <span class="text-sm font-semibold text-slate-800 dark:text-slate-200">${item.lecturerName}</span>
+                                </div>
+                                <span class="text-xs px-2.5 py-1 rounded-lg ${statusClass}">
+                                    ${item.startAt} - ${endAtStr}
+                                </span>
+                            </li>
+                        `;
+                    }).join('');
+                } else {
+                    list.innerHTML = '<li class="text-center text-slate-500 text-sm py-4">Môn học này chưa từng được gán giảng viên nào quản lý.</li>';
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                list.innerHTML = '<li class="text-center text-red-500 text-sm py-4">Lỗi tải dữ liệu.</li>';
+            });
+    }
+
+    function closeSubTermHistoryModal() {
+        const modal = document.getElementById('subTermHistoryModal');
+        const container = document.getElementById('subTermHistoryModalContainer');
+        container.classList.remove('scale-100');
+        container.classList.add('scale-95');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }, 150);
+    }
 </script>
+
+<!-- Subject Term History Modal -->
+<div id="subTermHistoryModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-lg flex flex-col shadow-2xl transition-all scale-95 duration-200" id="subTermHistoryModalContainer">
+        <!-- Header -->
+        <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/50 rounded-t-3xl">
+            <div>
+                <h3 class="text-lg font-bold text-slate-800 dark:text-slate-100" id="subTermHistoryTitle">Lịch sử Giảng viên</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Danh sách các Giảng viên phụ trách qua từng nhiệm kỳ.</p>
+            </div>
+            <button onclick="closeSubTermHistoryModal()" class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <!-- Body -->
+        <div class="p-6 overflow-y-auto max-h-[60vh]">
+            <ul id="subTermHistoryList" class="space-y-3">
+                <li class="text-center text-slate-500 text-sm py-4">Đang tải...</li>
+            </ul>
+        </div>
+
+        <!-- Footer -->
+        <div class="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 rounded-b-3xl flex justify-end">
+            <button type="button" onclick="closeSubTermHistoryModal()" class="px-5 py-2.5 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-colors">Đóng</button>
+        </div>
+    </div>
+</div>
 
 <style>
     @@keyframes fadeIn {

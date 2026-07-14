@@ -1,29 +1,32 @@
 using Microsoft.EntityFrameworkCore;
 using RagChatbot.Business.DTOs;
 using RagChatbot.Business.Interfaces;
-using RagChatbot.DataAccess.Data;
 using RagChatbot.DataAccess.EntityModels;
+using RagChatbot.DataAccess.Interfaces;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace RagChatbot.Business.Services
 {
     public class DepartmentService : IDepartmentService
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IDepartmentRepository _departmentRepository;
 
-        public DepartmentService(ApplicationDbContext context)
+        public DepartmentService(IDepartmentRepository departmentRepository)
         {
-            _context = context;
+            _departmentRepository = departmentRepository;
         }
 
         public async Task<IEnumerable<DepartmentDto>> GetAllDepartmentsAsync()
         {
-            var departments = await _context.Departments.ToListAsync();
+            var departments = await _departmentRepository.GetAllAsync();
             return departments.Select(MapToDto);
         }
 
         public async Task<DepartmentDto?> GetByIdAsync(int id)
         {
-            var department = await _context.Departments.FindAsync(id);
+            var department = await _departmentRepository.GetByIdAsync(id);
             return department == null ? null : MapToDto(department);
         }
 
@@ -36,30 +39,31 @@ namespace RagChatbot.Business.Services
                 IsActive = departmentDto.IsActive,
                 CreatedAt = System.DateTime.UtcNow
             };
-            _context.Departments.Add(department);
-            await _context.SaveChangesAsync();
+            await _departmentRepository.AddAsync(department);
+            await _departmentRepository.SaveChangesAsync();
             return MapToDto(department);
         }
 
         public async Task UpdateDepartmentAsync(DepartmentDto departmentDto)
         {
-            var department = await _context.Departments.FindAsync(departmentDto.Id);
+            var department = await _departmentRepository.GetByIdAsync(departmentDto.Id);
             if (department != null)
             {
                 department.Name = departmentDto.Name;
                 department.Description = departmentDto.Description;
                 department.IsActive = departmentDto.IsActive;
-                await _context.SaveChangesAsync();
+                _departmentRepository.Update(department);
+                await _departmentRepository.SaveChangesAsync();
             }
         }
 
         public async Task DeleteDepartmentAsync(int id)
         {
-            var department = await _context.Departments.FindAsync(id);
+            var department = await _departmentRepository.GetByIdAsync(id);
             if (department != null)
             {
-                _context.Departments.Remove(department);
-                await _context.SaveChangesAsync();
+                _departmentRepository.Remove(department);
+                await _departmentRepository.SaveChangesAsync();
             }
         }
 

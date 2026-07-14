@@ -3,25 +3,36 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using RagChatbot.Business.DTOs;
 using RagChatbot.Business.Interfaces;
-using RagChatbot.DataAccess.Data;
 using RagChatbot.DataAccess.EntityModels;
+using RagChatbot.DataAccess.Interfaces;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace RagChatbot.Business.Services
 {
     public class AppUserService : IAppUserService
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IAppUserRepository _appUserRepository;
+        private readonly IHodTermRepository _hodTermRepository;
+        private readonly IChatMessageRepository _chatMessageRepository;
         private readonly ISettingService _settingService;
 
-        public AppUserService(ApplicationDbContext context, ISettingService settingService)
+        public AppUserService(
+            IAppUserRepository appUserRepository,
+            IHodTermRepository hodTermRepository,
+            IChatMessageRepository chatMessageRepository,
+            ISettingService settingService)
         {
-            _context = context;
+            _appUserRepository = appUserRepository;
+            _hodTermRepository = hodTermRepository;
+            _chatMessageRepository = chatMessageRepository;
             _settingService = settingService;
         }
 
         public async Task<AppUserDto?> GetByIdAsync(int id)
         {
-            var user = await _context.AppUsers
+            var user = await _appUserRepository.Query()
                 .Include(u => u.Department)
                 .FirstOrDefaultAsync(u => u.Id == id);
             return user == null ? null : MapToDto(user);
@@ -37,7 +48,7 @@ namespace RagChatbot.Business.Services
             decimal defaultOutRate = priceConfig.TokenOutCostPerMillion;
             decimal defaultUsdRate = priceConfig.UsdVndRate;
 
-            var stats = await _context.ChatMessages
+            var stats = await _chatMessageRepository.Query()
                 .Where(m => m.Session != null && m.Session.UserId == userId)
                 .GroupBy(m => m.Session.UserId)
                 .Select(g => new {
@@ -65,7 +76,7 @@ namespace RagChatbot.Business.Services
 
         public async Task<AppUserDto?> GetByEmailAsync(string email)
         {
-            var user = await _context.AppUsers
+            var user = await _appUserRepository.Query()
                 .Include(u => u.Department)
                 .FirstOrDefaultAsync(u => u.Email == email);
             return user == null ? null : MapToDto(user);
@@ -73,7 +84,7 @@ namespace RagChatbot.Business.Services
 
         public async Task<IEnumerable<AppUserDto>> GetAllUsersAsync()
         {
-            var users = await _context.AppUsers
+            var users = await _appUserRepository.Query()
                 .Include(u => u.Department)
                 .ToListAsync();
             return users.Select(MapToDto);
@@ -81,7 +92,7 @@ namespace RagChatbot.Business.Services
 
         public async Task<IEnumerable<AppUserDto>> GetUsersByRoleAsync(string role)
         {
-            var users = await _context.AppUsers
+            var users = await _appUserRepository.Query()
                 .Include(u => u.Department)
                 .Where(u => u.Role == role)
                 .ToListAsync();
@@ -90,7 +101,7 @@ namespace RagChatbot.Business.Services
 
         public async Task<IEnumerable<AppUserDto>> GetUsersAsync(string role, bool? isActive, string searchEmail)
         {
-            var query = _context.AppUsers.IgnoreQueryFilters().Include(u => u.Department).Where(u => u.Role == role);
+            var query = _appUserRepository.Query().IgnoreQueryFilters().Include(u => u.Department).Where(u => u.Role == role);
             if (isActive.HasValue)
             {
                 query = query.Where(u => u.IsActive == isActive.Value);
@@ -107,7 +118,7 @@ namespace RagChatbot.Business.Services
             decimal defaultOutRate = priceConfig.TokenOutCostPerMillion;
             decimal defaultUsdRate = priceConfig.UsdVndRate;
 
-            var stats = await _context.ChatMessages
+            var stats = await _chatMessageRepository.Query()
                 .Where(m => m.Session != null && userIds.Contains(m.Session.UserId))
                 .GroupBy(m => m.Session.UserId)
                 .Select(g => new {
@@ -136,7 +147,7 @@ namespace RagChatbot.Business.Services
 
         public async Task<int> GetPremiumUsersCountAsync()
         {
-            return await _context.AppUsers.CountAsync(u => u.Subscription == AppUser.SubscriptionType.Premium);
+            return await _appUserRepository.Query().CountAsync(u => u.Subscription == AppUser.SubscriptionType.Premium);
         }
 
         public async Task AddUserAsync(AppUserDto userDto, string plainPassword)
@@ -151,13 +162,13 @@ namespace RagChatbot.Business.Services
                 DepartmentId = userDto.DepartmentId,
                 PasswordHash = HashPassword(plainPassword)
             };
-            _context.AppUsers.Add(user);
-            await _context.SaveChangesAsync();
+            await _appUserRepository.AddAsync(user);
+            await _appUserRepository.SaveChangesAsync();
         }
 
         public async Task UpdateUserAsync(AppUserDto userDto)
         {
-            var user = await _context.AppUsers.FindAsync(userDto.Id);
+            var user = await _appUserRepository.GetByIdAsync(userDto.Id);
             if (user != null)
             {
                 user.FirstName = userDto.FirstName;
@@ -166,38 +177,50 @@ namespace RagChatbot.Business.Services
                 user.IsActive = userDto.IsActive;
                 user.DepartmentId = userDto.DepartmentId;
                 user.Subscription = userDto.Subscription == "Premium" ? AppUser.SubscriptionType.Premium : AppUser.SubscriptionType.Free;
+                user.TodayChatCount = userDto.TodayChatCount;
+                user.DailyQueryCount = userDto.DailyQueryCount;
+                user.LastActiveDate = userDto.LastActiveDate;
+                user.LastQueryDate = userDto.LastQueryDate;
 
-                await _context.SaveChangesAsync();
+                _appUserRepository.Update(user);
+                await _appUserRepository.SaveChangesAsync();
             }
         }
 
         public async Task<bool> VerifyAndChangePasswordAsync(string email, string oldPassword, string newPassword)
         {
-            var user = await _context.AppUsers.FirstOrDefaultAsync(u => u.Email == email);
+            var user = await _appUserRepository.Query().FirstOrDefaultAsync(u => u.Email == email);
             if (user == null) return false;
 
             var hashedOld = HashPassword(oldPassword);
             if (user.PasswordHash != hashedOld) return false;
 
             user.PasswordHash = HashPassword(newPassword);
-            await _context.SaveChangesAsync();
+            _appUserRepository.Update(user);
+            await _appUserRepository.SaveChangesAsync();
             return true;
         }
 
         public async Task<bool> SoftDeleteUserAsync(int id)
         {
-            var user = await _context.AppUsers.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Id == id);
+            var user = await _appUserRepository.Query().IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Id == id);
             if (user != null && user.Role != "Admin")
             {
                 if (user.Role == "HeadOfDepartment" && user.DepartmentId.HasValue)
                 {
-                    var activeTerm = await _context.HodTerms.FirstOrDefaultAsync(t => t.AppUserId == user.Id && t.EndAt == null);
-                    if (activeTerm != null) activeTerm.EndAt = System.DateTime.UtcNow;
+                    var activeTerm = await _hodTermRepository.Query().FirstOrDefaultAsync(t => t.AppUserId == user.Id && t.EndAt == null);
+                    if (activeTerm != null)
+                    {
+                        activeTerm.EndAt = System.DateTime.UtcNow;
+                        _hodTermRepository.Update(activeTerm);
+                        await _hodTermRepository.SaveChangesAsync();
+                    }
                     user.DepartmentId = null;
                 }
 
                 user.IsActive = false;
-                await _context.SaveChangesAsync();
+                _appUserRepository.Update(user);
+                await _appUserRepository.SaveChangesAsync();
                 return true;
             }
             return false;
@@ -205,11 +228,12 @@ namespace RagChatbot.Business.Services
 
         public async Task<bool> RestoreUserAsync(int id)
         {
-            var user = await _context.AppUsers.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Id == id);
+            var user = await _appUserRepository.Query().IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Id == id);
             if (user != null)
             {
                 user.IsActive = true;
-                await _context.SaveChangesAsync();
+                _appUserRepository.Update(user);
+                await _appUserRepository.SaveChangesAsync();
                 return true;
             }
             return false;
@@ -217,11 +241,12 @@ namespace RagChatbot.Business.Services
 
         public async Task<bool> ResetPasswordAsync(int id, string newPassword)
         {
-            var user = await _context.AppUsers.FindAsync(id);
+            var user = await _appUserRepository.GetByIdAsync(id);
             if (user != null && user.Role != "Admin")
             {
                 user.PasswordHash = HashPassword(newPassword);
-                await _context.SaveChangesAsync();
+                _appUserRepository.Update(user);
+                await _appUserRepository.SaveChangesAsync();
                 return true;
             }
             return false;
@@ -229,48 +254,54 @@ namespace RagChatbot.Business.Services
 
         public async Task DeleteUserAsync(int id)
         {
-            var user = await _context.AppUsers.FindAsync(id);
+            var user = await _appUserRepository.GetByIdAsync(id);
             if (user != null)
             {
-                _context.AppUsers.Remove(user);
-                await _context.SaveChangesAsync();
+                _appUserRepository.Remove(user);
+                await _appUserRepository.SaveChangesAsync();
             }
         }
 
         public async Task IncrementQueryCountAsync(int id)
         {
-            var user = await _context.AppUsers.FindAsync(id);
+            var user = await _appUserRepository.GetByIdAsync(id);
             if (user != null)
             {
                 user.DailyQueryCount++;
                 user.LastQueryDate = System.DateTime.UtcNow;
-                await _context.SaveChangesAsync();
+                _appUserRepository.Update(user);
+                await _appUserRepository.SaveChangesAsync();
             }
         }
 
         public async Task ResetDailyQueryCountAsync(int id)
         {
-            var user = await _context.AppUsers.FindAsync(id);
+            var user = await _appUserRepository.GetByIdAsync(id);
             if (user != null)
             {
                 user.DailyQueryCount = 0;
-                await _context.SaveChangesAsync();
+                _appUserRepository.Update(user);
+                await _appUserRepository.SaveChangesAsync();
             }
         }
 
         public async Task UpdateHodDepartmentAsync(int userId, int? departmentId)
         {
-            var user = await _context.AppUsers.FindAsync(userId);
+            var user = await _appUserRepository.GetByIdAsync(userId);
             if (user == null || user.Role != "HeadOfDepartment") return;
 
             if (user.DepartmentId != departmentId)
             {
-                var activeTerm = await _context.HodTerms.FirstOrDefaultAsync(t => t.AppUserId == user.Id && t.EndAt == null);
-                if (activeTerm != null) activeTerm.EndAt = System.DateTime.UtcNow;
+                var activeTerm = await _hodTermRepository.Query().FirstOrDefaultAsync(t => t.AppUserId == user.Id && t.EndAt == null);
+                if (activeTerm != null)
+                {
+                    activeTerm.EndAt = System.DateTime.UtcNow;
+                    _hodTermRepository.Update(activeTerm);
+                }
 
                 if (departmentId.HasValue)
                 {
-                    _context.HodTerms.Add(new HodTerm
+                    await _hodTermRepository.AddAsync(new HodTerm
                     {
                         AppUserId = user.Id,
                         DepartmentId = departmentId.Value,
@@ -279,26 +310,35 @@ namespace RagChatbot.Business.Services
                 }
 
                 user.DepartmentId = departmentId;
-                await _context.SaveChangesAsync();
+                _appUserRepository.Update(user);
+                
+                await _hodTermRepository.SaveChangesAsync();
+                await _appUserRepository.SaveChangesAsync();
             }
         }
 
         public async Task EndHodTermAsync(int userId)
         {
-            var user = await _context.AppUsers.FindAsync(userId);
+            var user = await _appUserRepository.GetByIdAsync(userId);
             if (user != null && user.Role == "HeadOfDepartment" && user.DepartmentId.HasValue)
             {
-                var activeTerm = await _context.HodTerms.FirstOrDefaultAsync(t => t.AppUserId == user.Id && t.EndAt == null);
-                if (activeTerm != null) activeTerm.EndAt = System.DateTime.UtcNow;
+                var activeTerm = await _hodTermRepository.Query().FirstOrDefaultAsync(t => t.AppUserId == user.Id && t.EndAt == null);
+                if (activeTerm != null)
+                {
+                    activeTerm.EndAt = System.DateTime.UtcNow;
+                    _hodTermRepository.Update(activeTerm);
+                    await _hodTermRepository.SaveChangesAsync();
+                }
 
                 user.DepartmentId = null;
-                await _context.SaveChangesAsync();
+                _appUserRepository.Update(user);
+                await _appUserRepository.SaveChangesAsync();
             }
         }
 
         public async Task<IEnumerable<HodTermDto>> GetHodTermHistoryAsync(int userId)
         {
-            var terms = await _context.HodTerms
+            var terms = await _hodTermRepository.Query()
                 .Include(t => t.Department)
                 .Where(t => t.AppUserId == userId)
                 .OrderByDescending(t => t.StartAt)
@@ -314,7 +354,7 @@ namespace RagChatbot.Business.Services
 
         public async Task<IEnumerable<HodTermDto>> GetDepartmentTermHistoryAsync(int deptId)
         {
-            var terms = await _context.HodTerms
+            var terms = await _hodTermRepository.Query()
                 .Include(t => t.AppUser)
                 .Where(t => t.DepartmentId == deptId)
                 .OrderByDescending(t => t.StartAt)
@@ -330,7 +370,7 @@ namespace RagChatbot.Business.Services
 
         public async Task<bool> HasDepartmentHodAsync(int departmentId, int? excludeUserId = null)
         {
-            var query = _context.AppUsers.Where(u => u.Role == "HeadOfDepartment" && u.DepartmentId == departmentId);
+            var query = _appUserRepository.Query().Where(u => u.Role == "HeadOfDepartment" && u.DepartmentId == departmentId);
             if (excludeUserId.HasValue)
             {
                 query = query.Where(u => u.Id != excludeUserId.Value);

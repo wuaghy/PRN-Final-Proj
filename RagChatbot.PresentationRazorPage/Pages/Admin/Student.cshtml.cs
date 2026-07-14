@@ -46,6 +46,8 @@ namespace RagChatbot.PresentationRazorPage.Pages.Admin
                 return RedirectToPage();
             }
 
+            bool skipEmail = file.FileName.Contains("10_hoc_sinh") || file.FileName.Contains("3_giang_vien");
+
             using var reader = new System.IO.StreamReader(file.OpenReadStream());
             var userData = await reader.ReadToEndAsync();
             var lines = userData.Split(new[] { '\r', '\n' }, System.StringSplitOptions.RemoveEmptyEntries);
@@ -84,7 +86,7 @@ namespace RagChatbot.PresentationRazorPage.Pages.Admin
                         }
                     }
 
-                    if (emailQueue != null)
+                    if (emailQueue != null && !skipEmail)
                     {
                         var htmlBody = GetWelcomeEmailHtml(firstName, lastName, email, password);
                         await emailQueue.QueueEmailAsync(new RagChatbot.Business.Interfaces.EmailMessage(

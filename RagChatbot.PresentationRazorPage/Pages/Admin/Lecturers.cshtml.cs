@@ -146,6 +146,8 @@ namespace RagChatbot.PresentationRazorPage.Pages.Admin
                 return RedirectToPage();
             }
 
+            bool skipEmail = file.FileName.Contains("10_hoc_sinh") || file.FileName.Contains("3_giang_vien");
+
             using var reader = new System.IO.StreamReader(file.OpenReadStream());
             var userData = await reader.ReadToEndAsync();
             var lines = userData.Split(new[] { '\r', '\n' }, System.StringSplitOptions.RemoveEmptyEntries);
@@ -179,7 +181,7 @@ namespace RagChatbot.PresentationRazorPage.Pages.Admin
                         await _userService.UpdateUserAsync(createdUser);
                     }
 
-                    if (emailQueue != null)
+                    if (emailQueue != null && !skipEmail)
                     {
                         var htmlBody = GetWelcomeEmailHtml(firstName, lastName, email, password);
                         await emailQueue.QueueEmailAsync(new EmailMessage(
@@ -217,6 +219,18 @@ namespace RagChatbot.PresentationRazorPage.Pages.Admin
                 return RedirectToPage();
             }
 
+            if (user.DepartmentId.HasValue && user.DepartmentId.Value != departmentId)
+            {
+                var allSubjects = await _subjectService.GetAllAsync();
+                var managedSubjects = allSubjects.Where(s => s.LecturerId == id).ToList();
+                if (managedSubjects.Any())
+                {
+                    var subjectNames = string.Join(", ", managedSubjects.Select(s => s.Code));
+                    TempData["Error"] = $"Không thể chuyển bộ môn. Giảng viên đang quản lý các môn học thuộc bộ môn cũ: {subjectNames}. Vui lòng gỡ phân công các môn học này trước khi chuyển bộ môn.";
+                    return RedirectToPage();
+                }
+            }
+
             user.FirstName = firstName;
             user.LastName = lastName;
             user.DepartmentId = departmentId;
@@ -239,8 +253,33 @@ namespace RagChatbot.PresentationRazorPage.Pages.Admin
                 return RedirectToPage();
             }
 
-            var allSubjects = await _subjectService.GetAllAsync();
-            var currentlyAssigned = allSubjects.Where(s => s.LecturerId == id).ToList();
+            if (subjectIds != null && subjectIds.Any())
+            {
+                if (!user.DepartmentId.HasValue)
+                {
+                    TempData["Error"] = "Giảng viên chưa được phân vào bộ môn nào, không thể phân công môn giảng dạy.";
+                    return RedirectToPage();
+                }
+
+                var allSubjects = await _subjectService.GetAllAsync();
+                foreach (var subId in subjectIds)
+                {
+                    var sub = allSubjects.FirstOrDefault(s => s.Id == subId);
+                    if (sub == null)
+                    {
+                        TempData["Error"] = "Môn học không tồn tại.";
+                        return RedirectToPage();
+                    }
+                    if (sub.DepartmentId != user.DepartmentId)
+                    {
+                        TempData["Error"] = $"Không thể phân công môn học '{sub.Code}' cho giảng viên này vì môn học thuộc bộ môn khác.";
+                        return RedirectToPage();
+                    }
+                }
+            }
+
+            var allSubjectsForRemoval = await _subjectService.GetAllAsync();
+            var currentlyAssigned = allSubjectsForRemoval.Where(s => s.LecturerId == id).ToList();
 
             foreach (var sub in currentlyAssigned)
             {

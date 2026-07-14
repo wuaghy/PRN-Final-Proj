@@ -47,7 +47,7 @@ namespace RagChatbot.PresentationRazorPage.Pages.Admin
 
             int premiumUsersCount = await _userService.GetPremiumUsersCountAsync();
 
-            long packagePrice = 100000;
+            long packagePrice = 50000;
             long totalRevenue = premiumUsersCount * packagePrice;
 
             ViewData["PremiumCount"] = premiumUsersCount;

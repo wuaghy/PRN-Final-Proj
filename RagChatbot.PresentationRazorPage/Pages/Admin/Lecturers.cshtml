@@ -34,13 +34,7 @@
             <span class="text-sm font-semibold">@TempData["Success"]</span>
         </div>
     }
-    @if (TempData["Error"] != null)
-    {
-        <div class="mb-6 p-4 bg-rose-50 border border-rose-200 dark:bg-rose-500/10 dark:border-rose-500/30 text-rose-800 dark:text-rose-400 rounded-xl flex items-center gap-3 animate-fadeIn">
-            <i class="fa-solid fa-circle-exclamation text-lg"></i>
-            <span class="text-sm font-semibold">@TempData["Error"]</span>
-        </div>
-    }
+
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
@@ -275,30 +269,49 @@
                                                     <p class="text-xs text-slate-500 dark:text-slate-400">Chọn môn học giảng viên <strong>@user.LastName @user.FirstName</strong> đảm nhiệm giảng dạy:</p>
                                                     
                                                     <div class="space-y-4">
-                                                        @foreach (var deptGroup in Model.AllSubjects.GroupBy(s => s.DepartmentName))
+                                                        @if (!user.DepartmentId.HasValue)
                                                         {
-                                                            <div class="space-y-1.5">
-                                                                <h4 class="text-[10px] font-bold text-slate-450 dark:text-slate-500 uppercase tracking-wider mb-1">Bộ môn: @(string.IsNullOrEmpty(deptGroup.Key) ? "Khác" : deptGroup.Key)</h4>
-                                                                <div class="grid grid-cols-1 gap-1.5">
-                                                                    @foreach (var sub in deptGroup.Where(s => s.IsActive))
-                                                                    {
-                                                                        var isChecked = Model.LecturerSubjects.ContainsKey(user.Id) && Model.LecturerSubjects[user.Id].Any(s => s.Id == sub.Id);
-                                                                        <label class="flex items-center gap-2.5 p-2 rounded-xl border border-slate-100 dark:border-slate-850 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition cursor-pointer">
-                                                                            <input type="checkbox" name="subjectIds" value="@sub.Id" @(isChecked ? "checked" : "")
-                                                                                    data-subject-code="@sub.Code"
-                                                                                    data-subject-name="@sub.Name"
-                                                                                    data-currently-assigned="@(sub.LecturerId.HasValue && sub.LecturerId.Value != user.Id ? "true" : "false")"
-                                                                                    data-current-lecturer-name="@sub.LecturerName"
-                                                                                    onchange="handleSubjectCheckboxChange(this)"
-                                                                                    class="rounded border-slate-350 dark:border-slate-700 text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer" />
-                                                                            <div class="text-xs">
-                                                                                <span class="font-bold text-gray-800 dark:text-slate-200">@sub.Code</span>
-                                                                                <span class="text-slate-500 dark:text-slate-400 ml-1.5">— @sub.Name</span>
-                                                                            </div>
-                                                                        </label>
-                                                                    }
-                                                                </div>
+                                                            <div class="p-4 text-center text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-xl">
+                                                                <i class="fa-solid fa-triangle-exclamation mr-1.5"></i> Vui lòng phân công bộ môn cho giảng viên trước khi phân công môn dạy.
                                                             </div>
+                                                        }
+                                                        else
+                                                        {
+                                                            var lecturerSubjectsList = Model.AllSubjects.Where(s => s.DepartmentId == user.DepartmentId).ToList();
+                                                            if (!lecturerSubjectsList.Any())
+                                                            {
+                                                                <div class="p-4 text-center text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl">
+                                                                    <i class="fa-solid fa-folder-open mr-1.5"></i> Không có môn học nào thuộc bộ môn này.
+                                                                </div>
+                                                            }
+                                                            else
+                                                            {
+                                                                @foreach (var deptGroup in lecturerSubjectsList.GroupBy(s => s.DepartmentName))
+                                                                {
+                                                                    <div class="space-y-1.5">
+                                                                        <h4 class="text-[10px] font-bold text-slate-450 dark:text-slate-500 uppercase tracking-wider mb-1">Bộ môn: @(string.IsNullOrEmpty(deptGroup.Key) ? "Khác" : deptGroup.Key)</h4>
+                                                                        <div class="grid grid-cols-1 gap-1.5">
+                                                                            @foreach (var sub in deptGroup.Where(s => s.IsActive))
+                                                                            {
+                                                                                var isChecked = Model.LecturerSubjects.ContainsKey(user.Id) && Model.LecturerSubjects[user.Id].Any(s => s.Id == sub.Id);
+                                                                                <label class="flex items-center gap-2.5 p-2 rounded-xl border border-slate-100 dark:border-slate-850 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition cursor-pointer">
+                                                                                    <input type="checkbox" name="subjectIds" value="@sub.Id" @(isChecked ? "checked" : "")
+                                                                                            data-subject-code="@sub.Code"
+                                                                                            data-subject-name="@sub.Name"
+                                                                                            data-currently-assigned="@(sub.LecturerId.HasValue && sub.LecturerId.Value != user.Id ? "true" : "false")"
+                                                                                            data-current-lecturer-name="@sub.LecturerName"
+                                                                                            onchange="handleSubjectCheckboxChange(this)"
+                                                                                            class="rounded border-slate-350 dark:border-slate-700 text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer" />
+                                                                                    <div class="text-xs">
+                                                                                        <span class="font-bold text-gray-800 dark:text-slate-200">@sub.Code</span>
+                                                                                        <span class="text-slate-500 dark:text-slate-400 ml-1.5">— @sub.Name</span>
+                                                                                    </div>
+                                                                                </label>
+                                                                            }
+                                                                        </div>
+                                                                    </div>
+                                                                }
+                                                            }
                                                         }
                                                     </div>
                                                 </div>

@@ -49,7 +49,7 @@ namespace RagChatbot.PresentationRazorPage.Pages.Wallet
             vnpay.AddRequestData("vnp_Version", "2.1.0");
             vnpay.AddRequestData("vnp_Command", "pay");
             vnpay.AddRequestData("vnp_TmnCode", vnp_TmnCode);
-            vnpay.AddRequestData("vnp_Amount", (100000 * 100).ToString()); // 100,000 VND
+            vnpay.AddRequestData("vnp_Amount", (50000 * 100).ToString()); // 50,000 VND
             vnpay.AddRequestData("vnp_CreateDate", DateTime.Now.ToString("yyyyMMddHHmmss"));
             vnpay.AddRequestData("vnp_CurrCode", "VND");
             vnpay.AddRequestData("vnp_IpAddr", ipAddress);
@@ -90,7 +90,7 @@ namespace RagChatbot.PresentationRazorPage.Pages.Wallet
                     {
                         // LẤY SỐ TIỀN THỰC TẾ TỪ VNPAY (VNPAY nhân 100 nên phải chia lại 100)
                         string rawAmount = vnpay.GetResponseData("vnp_Amount");
-                        decimal amountVnd = decimal.TryParse(rawAmount, out var parsedAmt) ? parsedAmt / 100m : 100000m;
+                        decimal amountVnd = decimal.TryParse(rawAmount, out var parsedAmt) ? parsedAmt / 100m : 50000m;
 
                         // Gọi service xử lý cập nhật trạng thái Premium và ghi nhận giao dịch
                         await _transactionService.ProcessPremiumUpgradeAsync(uId, amountVnd);

@@ -177,6 +177,10 @@ namespace RagChatbot.Business.Services
                 user.IsActive = userDto.IsActive;
                 user.DepartmentId = userDto.DepartmentId;
                 user.Subscription = userDto.Subscription == "Premium" ? AppUser.SubscriptionType.Premium : AppUser.SubscriptionType.Free;
+                user.TodayChatCount = userDto.TodayChatCount;
+                user.DailyQueryCount = userDto.DailyQueryCount;
+                user.LastActiveDate = userDto.LastActiveDate;
+                user.LastQueryDate = userDto.LastQueryDate;
 
                 _appUserRepository.Update(user);
                 await _appUserRepository.SaveChangesAsync();

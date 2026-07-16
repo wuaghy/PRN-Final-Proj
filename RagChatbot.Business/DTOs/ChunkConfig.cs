@@ -17,19 +17,11 @@ namespace RagChatbot.Business.DTOs
         public bool ParagraphsPerChunkEnabled { get; set; }
         public int ParagraphsPerChunk { get; set; } = 5;
 
-        // Tokens/chunk: the original hardcoded maxChunkSize. Default ON so
-        // out-of-the-box behavior matches the old code exactly.
+        // Tokens/chunk is estimated consistently by the custom chunker.
         public bool TokensPerChunkEnabled { get; set; } = true;
         public int TokensPerChunk { get; set; } = 400;
 
+        // Number of trailing words carried into the next chunk.
         public int Overlap { get; set; } = 50;
-
-        // True when only the token limit is active => old SK-based path, no behavior change.
-        public bool IsTokenOnly =>
-            TokensPerChunkEnabled
-            && !WordsPerChunkEnabled
-            && !CharsPerChunkEnabled
-            && !WordsPerParagraphEnabled
-            && !ParagraphsPerChunkEnabled;
     }
 }

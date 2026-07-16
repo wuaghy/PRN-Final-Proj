@@ -9,10 +9,14 @@ namespace RagChatbot.PresentationRazorPage.Pages.Profile
     public class IndexModel : PageModel
     {
         private readonly RagChatbot.Business.Interfaces.IAppUserService _userService;
+        private readonly RagChatbot.Business.Interfaces.IAuditLogService _auditLogService;
 
-        public IndexModel(RagChatbot.Business.Interfaces.IAppUserService userService)
+        public IndexModel(
+            RagChatbot.Business.Interfaces.IAppUserService userService,
+            RagChatbot.Business.Interfaces.IAuditLogService auditLogService)
         {
             _userService = userService;
+            _auditLogService = auditLogService;
         }
 
         public RagChatbot.Business.DTOs.AppUserDto UserProfile { get; set; } = default!;
@@ -50,6 +54,9 @@ namespace RagChatbot.PresentationRazorPage.Pages.Profile
                 return RedirectToPage();
             }
 
+            var actorIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(actorIdValue, out var actorId)) return Unauthorized();
+
             var success = await _userService.VerifyAndChangePasswordAsync(userEmail, oldPassword, newPassword);
 
             if (!success)
@@ -57,6 +64,12 @@ namespace RagChatbot.PresentationRazorPage.Pages.Profile
                 TempData["Error"] = "Đổi mật khẩu thất bại. Kiểm tra lại mật khẩu cũ.";
                 return RedirectToPage();
             }
+
+            await _auditLogService.LogAsync(
+                actorId,
+                "ChangePassword",
+                actorId.ToString(),
+                "Password changed successfully; no credential data recorded.");
 
             TempData["Success"] = "Đổi mật khẩu thành công!";
             return RedirectToPage();

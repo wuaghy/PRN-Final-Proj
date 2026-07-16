@@ -83,7 +83,7 @@ namespace RagChatbot.PresentationRazorPage.Pages.Admin
             return Page();
         }
 
-        public async Task<IActionResult> OnPostCreateSingleLecturerAsync(string email, string firstName, string lastName, string password, int departmentId, List<int> subjectIds)
+        public async Task<IActionResult> OnPostCreateSingleLecturerAsync(string email, string firstName, string lastName, string password, int departmentId)
         {
             if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(lastName) || string.IsNullOrWhiteSpace(password) || departmentId <= 0)
             {
@@ -111,13 +111,8 @@ namespace RagChatbot.PresentationRazorPage.Pages.Admin
                 createdUser.DepartmentId = departmentId;
                 await _userService.UpdateUserAsync(createdUser);
 
-                if (subjectIds != null && subjectIds.Any())
-                {
-                    foreach (var subId in subjectIds)
-                    {
-                        await _subjectService.AssignLecturerAsync(subId, createdUser.Id);
-                    }
-                }
+                // Admin subject assignment intentionally disabled. HOD owns lecturer assignment.
+                // Previous implementation assigned every submitted subjectId here.
 
                 var adminId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
                 await _auditLogService.LogAsync(adminId, "Create Lecturer", createdUser.Id.ToString(), $"Email: {email}, DeptId: {departmentId}");
@@ -244,6 +239,8 @@ namespace RagChatbot.PresentationRazorPage.Pages.Admin
             return RedirectToPage();
         }
 
+        // Admin subject assignment intentionally disabled. Keep this implementation for reuse.
+#if false
         public async Task<IActionResult> OnPostChangeSubjectsAsync(int id, List<int> subjectIds)
         {
             var user = await _userService.GetByIdAsync(id);
@@ -303,6 +300,7 @@ namespace RagChatbot.PresentationRazorPage.Pages.Admin
             TempData["Success"] = "Cập nhật danh sách môn học giảng dạy thành công.";
             return RedirectToPage();
         }
+#endif
 
         public async Task<IActionResult> OnPostDeleteLecturerAsync(int id)
         {

@@ -177,3 +177,4 @@ Mở trình duyệt tại `http://localhost:5057` hoặc `https://localhost:7030
 | -------------------------------------------- | ------------------------------------------------------------ |
 | [Docs/SYSTEM_FLOW.md](./Docs/SYSTEM_FLOW.md) | Luồng hoạt động chi tiết: Document Ingestion & RAG Chat Flow |
 | [Docs/ENTITIES.md](./Docs/ENTITIES.md)       | Mô tả Entities, DTOs, ViewModels & cấu hình DbContext        |
+| [Docs/CHUNK_DOC.md](./Docs/CHUNK_DOC.md)     | Hướng dẫn cấu hình, thuật toán và luồng xử lý Chunking       |

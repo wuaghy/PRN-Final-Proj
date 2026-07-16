@@ -127,8 +127,8 @@
     <div id="confirmModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/40 dark:bg-slate-950/80 backdrop-blur-sm">
         <div class="glass dark:bg-slate-900/95 rounded-2xl p-6 w-full max-w-sm mx-4 shadow-xl dark:border-slate-800">
             <div class="flex items-center gap-3 mb-3">
-                <span class="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
-                    <i class="fa-solid fa-triangle-exclamation text-red-500 dark:text-red-400"></i>
+                <span id="confirmIconContainer" class="size-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
+                    <i id="confirmIcon" class="fa-solid fa-triangle-exclamation text-red-500 dark:text-red-400" aria-hidden="true"></i>
                 </span>
                 <div>
                     <p class="font-semibold text-gray-900 dark:text-slate-100" id="confirmTitle">Xác nhận xóa</p>
@@ -402,6 +402,8 @@
             document.getElementById('confirmMessage').textContent = message;
             _confirmCallback = onConfirm;
             const okBtn = document.getElementById('confirmOkBtn');
+            const iconContainer = document.getElementById('confirmIconContainer');
+            const icon = document.getElementById('confirmIcon');
             if (okBtn) {
                 okBtn.textContent = okBtnText;
                 if (isDanger) {
@@ -409,6 +411,14 @@
                 } else {
                     okBtn.className = "px-4 py-2 rounded-lg text-sm font-medium bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shadow-emerald-500/30";
                 }
+            }
+            if (iconContainer && icon) {
+                iconContainer.className = isDanger
+                    ? "size-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0"
+                    : "size-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0";
+                icon.className = isDanger
+                    ? "fa-solid fa-triangle-exclamation text-red-500 dark:text-red-400"
+                    : "fa-solid fa-circle-exclamation text-amber-600 dark:text-amber-400";
             }
             document.getElementById('confirmModal').classList.remove('hidden');
             document.getElementById('confirmModal').classList.add('flex');

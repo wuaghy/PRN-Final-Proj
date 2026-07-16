@@ -14,6 +14,7 @@
         </h1>
     </div>
 
+    <form id="assignment-form" method="post" asp-page-handler="AssignLecturers" onsubmit="return confirmBatchAssignments(this, event);">
     <div id="subject-container" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
         <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between">
             <h3 class="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -43,19 +44,25 @@
                     }
                     else
                     {
-                        foreach (var subject in Model.Subjects)
+                        var subjectList = Model.Subjects.ToList();
+                        for (var index = 0; index < subjectList.Count; index++)
                         {
-                            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group">
+                            var subject = subjectList[index];
+                            <tr data-assignment-row class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group">
                                  <td class="px-6 py-4 font-mono text-xs font-bold text-slate-500 dark:text-slate-400">@subject.Code</td>
                                  <td class="px-6 py-4 font-bold text-gray-900 dark:text-slate-100">
                                      <a href="javascript:void(0)" onclick="openSubjectHistoryModal(@subject.Id, '@subject.Name.Replace("'", "\\'")')" class="hover:text-blue-500 transition-colors cursor-pointer decoration-blue-500/30 underline-offset-4 hover:underline">@subject.Name</a>
                                  </td>
                                 <td class="px-6 py-4">
-                                    <form method="post" asp-page-handler="AssignLecturer" onsubmit="return confirmAssign(this, event);" class="flex items-center gap-2">
-                                        <input type="hidden" name="subjectId" value="@subject.Id" />
-                                        <select name="lecturerId"
-                                                data-original-lecturer-id="@(subject.LecturerId ?? 0)"
-                                                data-original-lecturer-name="@(subject.LecturerName)"
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <input type="hidden" name="assignments[@index].SubjectId" value="@subject.Id" />
+                                        <input type="hidden" name="assignments[@index].OriginalLecturerId" value="@subject.LecturerId" />
+                                        <label for="assignment-lecturer-@index" class="sr-only">Giảng viên phụ trách môn @subject.Code</label>
+                                        <select id="assignment-lecturer-@index"
+                                                name="assignments[@index].LecturerId"
+                                                data-assignment-select
+                                                data-original-lecturer-id="@subject.LecturerId"
+                                                onchange="updateAssignmentRow(this)"
                                                 class="text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 px-2 py-1.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                                             <option value="">— Chưa gán —</option>
                                             @foreach (var lecturer in Model.Lecturers)
@@ -71,11 +78,17 @@
                                                 }
                                             }
                                         </select>
-                                         <button type="submit"
-                                                 class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-colors flex items-center gap-1.5 cursor-pointer">
-                                             <i class="fa-solid fa-user-plus"></i> Phân công
-                                        </button>
-                                     </form>
+                                        <div data-document-cleanup-option class="hidden basis-full mt-2 rounded-xl border border-amber-200 bg-amber-50 p-3 dark:border-amber-500/30 dark:bg-amber-500/10">
+                                            <label class="flex cursor-pointer items-start gap-3 text-sm text-amber-900 dark:text-amber-100">
+                                                <input type="checkbox" name="assignments[@index].RemoveCurrentSubjectDocuments" value="true"
+                                                       class="mt-0.5 size-4 rounded border-amber-400 text-amber-600 focus:ring-amber-500" />
+                                                <span>
+                                                    <span class="block font-semibold">Xóa toàn bộ tài liệu hiện tại của môn</span>
+                                                    <span class="mt-1 block text-xs text-pretty text-amber-700 dark:text-amber-300">Xóa tất cả tài liệu của môn này, không phân biệt người tải lên. Thao tác không thể hoàn tác ở mức dữ liệu.</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                     </div>
                                  </td>
                              </tr>
                         }
@@ -83,12 +96,29 @@
                 </tbody>
             </table>
         </div>
+        @if (Model.Subjects.Any())
+        {
+            <div class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50/70 px-6 py-4 dark:border-slate-800 dark:bg-slate-950/30 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <p id="assignment-change-summary" class="text-sm font-medium text-slate-700 dark:text-slate-200">Chưa có thay đổi nào.</p>
+                    <p data-external-change-notice class="mt-1 hidden text-xs text-amber-700 dark:text-amber-300">Danh sách môn học vừa thay đổi ở nơi khác. Hãy tải lại trang trước khi tiếp tục.</p>
+                </div>
+                <button id="save-assignments-button" type="submit" disabled
+                        class="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:focus:ring-offset-slate-900">
+                    <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
+                    Lưu phân công
+                </button>
+            </div>
+        }
     </div>
+    </form>
 </div>
 
 @section Scripts {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
     <script>
+        let assignmentFormDirty = false;
+
         const connection = new signalR.HubConnectionBuilder()
             .withUrl("/appNotificationHub")
             .withAutomaticReconnect()
@@ -96,6 +126,11 @@
 
         connection.on("SubjectListChanged", async function () {
             try {
+                if (assignmentFormDirty) {
+                    document.querySelector('[data-external-change-notice]')?.classList.remove('hidden');
+                    return;
+                }
+
                 const url = new URL(window.location.href);
                 url.searchParams.set('_t', new Date().getTime());
                 const res = await fetch(url.toString(), { cache: "no-store" });
@@ -107,6 +142,7 @@
                 const newContainer = doc.getElementById('subject-container');
                 if (currentContainer && newContainer) {
                     currentContainer.innerHTML = newContainer.innerHTML;
+                    initializeAssignmentForm();
                 }
             } catch (err) {
                 console.error("Error fetching subject data:", err);
@@ -117,35 +153,96 @@
             return console.error(err.toString());
         });
 
-        function confirmAssign(form, event) {
-            const select = form.querySelector('select[name="lecturerId"]');
-            const selectedVal = select.value;
-            const originalLecturerId = select.getAttribute('data-original-lecturer-id');
-            const originalLecturerName = select.getAttribute('data-original-lecturer-name');
+        function getChangedAssignmentSelects() {
+            return Array.from(document.querySelectorAll('[data-assignment-select]'))
+                .filter(select => select.value !== (select.dataset.originalLecturerId || ''));
+        }
 
-            if (selectedVal && originalLecturerId && originalLecturerId !== "0" && selectedVal !== originalLecturerId) {
+        function updateAssignmentRow(select) {
+            const row = select.closest('[data-assignment-row]');
+            const option = row?.querySelector('[data-document-cleanup-option]');
+            const checkbox = option?.querySelector('input[type="checkbox"]');
+            const originalLecturerId = select.dataset.originalLecturerId || '';
+            const isChanged = select.value !== originalLecturerId;
+            const isReassignment = Boolean(select.value) && Boolean(originalLecturerId) && isChanged;
+
+            option?.classList.toggle('hidden', !isReassignment);
+            if (!isReassignment && checkbox) checkbox.checked = false;
+            row?.classList.toggle('bg-emerald-50', isChanged);
+            row?.classList.toggle('dark:bg-emerald-500/5', isChanged);
+            refreshAssignmentSummary();
+        }
+
+        function refreshAssignmentSummary() {
+            const changedCount = getChangedAssignmentSelects().length;
+            const summary = document.getElementById('assignment-change-summary');
+            const button = document.getElementById('save-assignments-button');
+            assignmentFormDirty = changedCount > 0;
+
+            if (summary) {
+                summary.textContent = changedCount > 0
+                    ? `${changedCount} môn học đang chờ lưu.`
+                    : 'Chưa có thay đổi nào.';
+            }
+            if (button) button.disabled = changedCount === 0;
+        }
+
+        function initializeAssignmentForm() {
+            document.querySelectorAll('[data-assignment-select]').forEach(select => {
+                const option = select.closest('[data-assignment-row]')?.querySelector('[data-document-cleanup-option]');
+                option?.classList.add('hidden');
+            });
+            assignmentFormDirty = false;
+            refreshAssignmentSummary();
+        }
+
+        function confirmBatchAssignments(form, event) {
+            if (form.dataset.confirmed === 'true') {
+                delete form.dataset.confirmed;
+                document.getElementById('save-assignments-button')?.setAttribute('disabled', 'disabled');
+                return true;
+            }
+
+            const changedSelects = getChangedAssignmentSelects();
+            if (changedSelects.length === 0) {
                 event.preventDefault();
-                const selectedText = select.options[select.selectedIndex].text;
-
-                if (typeof showConfirmModal === 'function') {
-                    showConfirmModal(
-                        'Xác nhận gán môn học',
-                        `Môn học này đang được gán cho giảng viên "${originalLecturerName}". Bạn có chắc chắn muốn chuyển môn này sang cho giảng viên "${selectedText}"?`,
-                        () => {
-                            form.submit();
-                        },
-                        'Đồng ý',
-                        false // isDanger = false
-                    );
-                } else {
-                    if (confirm(`Môn học này đang được gán cho giảng viên "${originalLecturerName}". Bạn có chắc chắn muốn chuyển môn này sang cho giảng viên "${selectedText}"?`)) {
-                        form.submit();
-                    }
-                }
+                refreshAssignmentSummary();
                 return false;
             }
-            return true;
+
+            const assignedCount = changedSelects.filter(select => !select.dataset.originalLecturerId && select.value).length;
+            const reassignedCount = changedSelects.filter(select => select.dataset.originalLecturerId && select.value).length;
+            const unassignedCount = changedSelects.filter(select => select.dataset.originalLecturerId && !select.value).length;
+            const cleanupCount = changedSelects.filter(select => {
+                const option = select.closest('[data-assignment-row]')?.querySelector('[data-document-cleanup-option]');
+                return option && !option.classList.contains('hidden') && option.querySelector('input[type="checkbox"]')?.checked;
+            }).length;
+            const hasSensitiveChanges = reassignedCount > 0 || unassignedCount > 0 || cleanupCount > 0;
+            const message = `Bạn sắp lưu ${changedSelects.length} thay đổi: ${assignedCount} gán mới, ${reassignedCount} chuyển giảng viên, ${unassignedCount} gỡ phân công.`
+                + (cleanupCount > 0
+                    ? ` ${cleanupCount} môn sẽ bị xóa toàn bộ tài liệu hiện tại. Thao tác xóa không thể hoàn tác.`
+                    : ' Các tài liệu hiện tại sẽ được giữ nguyên.');
+            const submitBatch = () => {
+                form.dataset.confirmed = 'true';
+                form.requestSubmit();
+            };
+
+            event.preventDefault();
+            if (typeof showConfirmModal === 'function') {
+                showConfirmModal(
+                    'Xác nhận lưu phân công',
+                    message,
+                    submitBatch,
+                    'Lưu phân công',
+                    hasSensitiveChanges
+                );
+            } else if (confirm(message)) {
+                submitBatch();
+            }
+            return false;
         }
+
+        initializeAssignmentForm();
 
         function openSubjectHistoryModal(id, name) {
             document.getElementById('subTermHistoryTitle').innerText = 'Nhiệm kỳ môn: ' + name;

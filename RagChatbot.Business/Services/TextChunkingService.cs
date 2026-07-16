@@ -1,7 +1,4 @@
-#pragma warning disable SKEXP0050
 using System.Text.RegularExpressions;
-using Microsoft.Extensions.Logging;
-using Microsoft.SemanticKernel.Text;
 using RagChatbot.Business.DTOs;
 using RagChatbot.Business.Interfaces;
 
@@ -9,13 +6,6 @@ namespace RagChatbot.Business.Services
 {
     public class TextChunkingService : ITextChunkingService
     {
-        private readonly ILogger<TextChunkingService> _logger;
-
-        public TextChunkingService(ILogger<TextChunkingService> logger)
-        {
-            _logger = logger;
-        }
-
         public Task<List<string>> ChunkTextAsync(string rawText, ChunkConfig config)
         {
             if (string.IsNullOrWhiteSpace(rawText)) return Task.FromResult(new List<string>());
@@ -33,9 +23,7 @@ namespace RagChatbot.Business.Services
             // Isolate markdown bold tag boundaries from word tokens
             cleanedText = cleanedText.Replace("**", " ** ");
 
-            var chunks = config.IsTokenOnly
-                ? ChunkTokensOnly(cleanedText, config.TokensPerChunk, config.Overlap)
-                : ChunkWithLimits(cleanedText, config);
+            var chunks = ChunkWithLimits(cleanedText, config);
 
             // Reassemble ordered collection and decode hidden mask values
             var finalizedChunks = new List<string>();
@@ -56,13 +44,6 @@ namespace RagChatbot.Business.Services
             }
 
             return Task.FromResult(finalizedChunks);
-        }
-
-        // Old behavior: token limit only, delegated to Semantic Kernel (unchanged).
-        private static List<string> ChunkTokensOnly(string cleanedText, int maxTokens, int overlap)
-        {
-            var lines = TextChunker.SplitPlainTextLines(cleanedText, maxTokensPerLine: 350);
-            return TextChunker.SplitPlainTextParagraphs(lines, maxTokens, overlap);
         }
 
         // AND semantics: a chunk must satisfy every ENABLED chunk-level limit at once.
@@ -96,20 +77,25 @@ namespace RagChatbot.Business.Services
                 paragraphs = capped;
             }
 
-            // Stage 2: accumulate units into chunks; close before any enabled ceiling is breached.
+            // Stage 2: accumulate original paragraphs separately from the overlap prefix.
+            // Overlap is measured in words, is not counted as a paragraph, and is reduced
+            // when necessary so the next chunk still satisfies every enabled size cap.
             var chunks = new List<string>();
             var current = new List<string>();
+            string overlapPrefix = string.Empty;
 
             foreach (var para in paragraphs)
             {
-                if (current.Count > 0 && Breaches(current, para, c))
+                if (current.Count > 0 && Breaches(overlapPrefix, current, para, c))
                 {
-                    chunks.Add(string.Join("\n", current));
-                    current = CarryOverlap(current, c.Overlap);
+                    string closedChunk = JoinChunk(overlapPrefix, current);
+                    chunks.Add(closedChunk);
+                    overlapPrefix = FitOverlap(closedChunk, para, c);
+                    current = new List<string>();
                 }
                 current.Add(para);
             }
-            if (current.Count > 0) chunks.Add(string.Join("\n", current));
+            if (current.Count > 0) chunks.Add(JoinChunk(overlapPrefix, current));
 
             return chunks;
         }
@@ -178,35 +164,66 @@ namespace RagChatbot.Business.Services
             return false;
         }
 
-        // Would appending `next` to `current` breach any enabled chunk-level limit?
-        private static bool Breaches(List<string> current, string next, ChunkConfig c)
+        // Would appending `next` breach a paragraph count or any enabled size limit?
+        // The overlap prefix is content, but it is not an original paragraph.
+        private static bool Breaches(string overlapPrefix, List<string> current, string next, ChunkConfig c)
         {
             if (c.ParagraphsPerChunkEnabled && current.Count + 1 > c.ParagraphsPerChunk)
                 return true;
 
-            // Only join when a length limit is on (avoids building the string needlessly).
             if (c.WordsPerChunkEnabled || c.CharsPerChunkEnabled || c.TokensPerChunkEnabled)
             {
-                string combined = string.Join("\n", current) + "\n" + next;
-
-                if (c.CharsPerChunkEnabled && combined.Length > c.CharsPerChunk) return true;
-                if (c.WordsPerChunkEnabled && CountWords(combined) > c.WordsPerChunk) return true;
-                if (c.TokensPerChunkEnabled && EstimateTokens(combined) > c.TokensPerChunk) return true;
+                string combined = JoinChunk(overlapPrefix, current.Append(next));
+                return ExceedsChunkLevel(combined, c);
             }
             return false;
         }
 
-        // Carry the trailing `overlapWords` words of the closed chunk into the next one.
-        // ponytail: overlap approximated in words, carried as one seed unit; good enough for RAG recall.
-        private static List<string> CarryOverlap(List<string> closedChunk, int overlapWords)
+        private static string FitOverlap(string closedChunk, string nextParagraph, ChunkConfig c)
         {
-            if (overlapWords <= 0) return new List<string>();
+            if (c.Overlap <= 0) return string.Empty;
 
-            var words = string.Join("\n", closedChunk).Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (words.Length == 0) return new List<string>();
+            var words = closedChunk.Split(
+                new[] { ' ', '\n', '\t' },
+                StringSplitOptions.RemoveEmptyEntries);
+            int maximum = Math.Min(c.Overlap, words.Length);
 
-            var tail = words.Skip(Math.Max(0, words.Length - overlapWords));
-            return new List<string> { string.Join(' ', tail) };
+            int low = 1;
+            int high = maximum;
+            string best = string.Empty;
+            while (low <= high)
+            {
+                int wordCount = low + (high - low) / 2;
+                string candidate = string.Join(' ', words.Skip(words.Length - wordCount));
+                string combined = JoinChunk(candidate, new[] { nextParagraph });
+                if (!ExceedsChunkLevel(combined, c))
+                {
+                    best = candidate;
+                    low = wordCount + 1;
+                }
+                else
+                {
+                    high = wordCount - 1;
+                }
+            }
+
+            return best;
+        }
+
+        private static bool ExceedsChunkLevel(string text, ChunkConfig c)
+        {
+            if (c.CharsPerChunkEnabled && text.Length > c.CharsPerChunk) return true;
+            if (c.WordsPerChunkEnabled && CountWords(text) > c.WordsPerChunk) return true;
+            if (c.TokensPerChunkEnabled && EstimateTokens(text) > c.TokensPerChunk) return true;
+            return false;
+        }
+
+        private static string JoinChunk(string overlapPrefix, IEnumerable<string> paragraphs)
+        {
+            var parts = new List<string>();
+            if (!string.IsNullOrWhiteSpace(overlapPrefix)) parts.Add(overlapPrefix.Trim());
+            parts.AddRange(paragraphs.Where(p => !string.IsNullOrWhiteSpace(p)).Select(p => p.Trim()));
+            return string.Join("\n", parts);
         }
 
         private static int CountWords(string text)

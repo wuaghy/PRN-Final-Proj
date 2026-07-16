@@ -40,6 +40,13 @@ namespace RagChatbot.PresentationRazorPage.Pages.Document
             return int.TryParse(userIdStr, out int userId) ? userId : 0;
         }
 
+        private async Task<bool> CanHodManageSubjectAsync(int userId, RagChatbot.Business.DTOs.SubjectDto? subject)
+        {
+            if (!User.IsInRole("HeadOfDepartment") || subject == null) return false;
+            var hod = await _userService.GetByIdAsync(userId);
+            return hod?.DepartmentId.HasValue == true && subject.DepartmentId == hod.DepartmentId;
+        }
+
         public RagChatbot.PresentationRazorPage.ViewModels.DocumentIndexViewModel ViewModel { get; set; } = new();
 
         public async Task<IActionResult> OnGetAsync()
@@ -111,6 +118,7 @@ namespace RagChatbot.PresentationRazorPage.Pages.Document
             [FromServices] ILocalStorageService localStorage)
         {
             var userId = GetCurrentUserId();
+            if (userId == 0) return Unauthorized();
             var subject = await _subjectService.GetByIdAsync(subjectId);
 
             if (subject == null)
@@ -198,8 +206,12 @@ namespace RagChatbot.PresentationRazorPage.Pages.Document
                     UploaderId = userId
                 };
 
-                await _documentService.AddAsync(document);
-                await _auditLogService.LogAsync(userId, "Upload Document", "", $"File: {file.FileName} for SubjectId: {subjectId}");
+                var createdDocument = await _documentService.AddAsync(document);
+                await _auditLogService.LogAsync(
+                    userId,
+                    "UploadDocument",
+                    createdDocument.Id.ToString(),
+                    $"SubjectId={subjectId}; FileName={file.FileName}; Storage={storageInfo}");
 
                 storageInfos.Add(storageInfo);
                 successCount++;
@@ -236,6 +248,7 @@ namespace RagChatbot.PresentationRazorPage.Pages.Document
             }
 
             var userId = GetCurrentUserId();
+            if (userId == 0) return Unauthorized();
             try
             {
                 var isHod = User.IsInRole("HeadOfDepartment");
@@ -246,7 +259,12 @@ namespace RagChatbot.PresentationRazorPage.Pages.Document
                     deptId = hodUser?.DepartmentId;
                 }
 
-                await _subjectService.AddAsync(new RagChatbot.Business.DTOs.CreateSubjectDto { Code = code.Trim(), Name = name.Trim(), DepartmentId = deptId });
+                var createdSubject = await _subjectService.AddAsync(new RagChatbot.Business.DTOs.CreateSubjectDto { Code = code.Trim(), Name = name.Trim(), DepartmentId = deptId });
+                await _auditLogService.LogAsync(
+                    userId,
+                    "CreateSubject",
+                    createdSubject.Id.ToString(),
+                    $"Code={createdSubject.Code}; Name={createdSubject.Name}; DepartmentId={createdSubject.DepartmentId}");
                 TempData["Success"] = "Subject created.";
             }
             catch (Exception)
@@ -264,19 +282,25 @@ namespace RagChatbot.PresentationRazorPage.Pages.Document
         public async Task<IActionResult> OnPostDeleteDocumentAsync(int id)
         {
             var userId = GetCurrentUserId();
+            if (userId == 0) return Unauthorized();
             var document = await _documentService.GetByIdAsync(id);
 
             if (document == null) return new JsonResult(new { success = false, message = "Document not found." });
 
             var subject = await _subjectService.GetByIdAsync(document.SubjectId);
             bool canDelete = User.IsInRole("Lecturer") && (document.UploaderId == userId || (subject != null && subject.LecturerId == userId));
+            canDelete = canDelete || await CanHodManageSubjectAsync(userId, subject);
             if (!canDelete)
             {
                 return new JsonResult(new { success = false, message = "Bạn không có quyền xóa tài liệu này." });
             }
 
             await _documentService.DeleteAsync(id);
-            await _auditLogService.LogAsync(userId, "Delete Document", id.ToString(), $"FileId: {id}");
+            await _auditLogService.LogAsync(
+                userId,
+                "DeleteDocument",
+                id.ToString(),
+                $"SubjectId={document.SubjectId}; DisplayName={document.DisplayName}; FileName={document.FileName}; UploaderId={document.UploaderId}; Role={User.FindFirstValue(ClaimTypes.Role)}");
 
             await _hubContext.Clients.All.SendAsync("DocumentListChanged");
 
@@ -286,6 +310,7 @@ namespace RagChatbot.PresentationRazorPage.Pages.Document
         public async Task<IActionResult> OnPostToggleDocumentActiveAsync(int id)
         {
             var userId = GetCurrentUserId();
+            if (userId == 0) return Unauthorized();
             var document = await _documentService.GetByIdAsync(id);
 
             if (document == null) return new JsonResult(new { success = false, message = "Document not found." });
@@ -311,7 +336,14 @@ namespace RagChatbot.PresentationRazorPage.Pages.Document
             }
 
             document.IsActive = !document.IsActive;
+            var previousStatus = !document.IsActive;
             await _documentService.UpdateAsync(document);
+
+            await _auditLogService.LogAsync(
+                userId,
+                "ToggleDocumentStatus",
+                id.ToString(),
+                $"SubjectId={document.SubjectId}; IsActive={previousStatus}->{document.IsActive}; Role={User.FindFirstValue(ClaimTypes.Role)}");
 
             // 🔥 Đã bổ sung SignalR bị thiếu ở đây
             await _hubContext.Clients.All.SendAsync("DocumentListChanged");
@@ -322,19 +354,31 @@ namespace RagChatbot.PresentationRazorPage.Pages.Document
         public async Task<IActionResult> OnPostRenameDocumentAsync(int id, string displayName)
         {
             var userId = GetCurrentUserId();
+            if (userId == 0) return Unauthorized();
             var document = await _documentService.GetByIdAsync(id);
 
             if (document == null) return new JsonResult(new { success = false, message = "Document not found." });
 
             var subject = await _subjectService.GetByIdAsync(document.SubjectId);
             bool canRename = User.IsInRole("Lecturer") && (document.UploaderId == userId || (subject != null && subject.LecturerId == userId));
+            canRename = canRename || await CanHodManageSubjectAsync(userId, subject);
             if (!canRename)
             {
                 return new JsonResult(new { success = false, message = "Bạn không có quyền đổi tên tài liệu này." });
             }
 
+            if (string.IsNullOrWhiteSpace(displayName))
+                return new JsonResult(new { success = false, message = "Tên hiển thị không được để trống." });
+
+            var previousDisplayName = document.DisplayName;
             document.DisplayName = displayName.Trim();
             await _documentService.UpdateAsync(document);
+
+            await _auditLogService.LogAsync(
+                userId,
+                "RenameDocument",
+                id.ToString(),
+                $"SubjectId={document.SubjectId}; DisplayName={previousDisplayName}->{document.DisplayName}; Role={User.FindFirstValue(ClaimTypes.Role)}");
 
             await _hubContext.Clients.All.SendAsync("DocumentListChanged");
 
@@ -344,6 +388,8 @@ namespace RagChatbot.PresentationRazorPage.Pages.Document
         public async Task<IActionResult> OnPostReportDocumentAsync(int id, string reason, [FromServices] RagChatbot.Business.Interfaces.IEmailQueue emailQueue)
         {
             var isAdmin = User.IsInRole("Admin");
+            var adminId = GetCurrentUserId();
+            if (adminId == 0) return Unauthorized();
             if (!isAdmin) return new JsonResult(new { success = false, message = "Bạn không có quyền báo cáo tài liệu." });
 
             if (string.IsNullOrWhiteSpace(reason)) return new JsonResult(new { success = false, message = "Vui lòng nhập lý do." });
@@ -366,6 +412,12 @@ namespace RagChatbot.PresentationRazorPage.Pages.Document
             );
 
             await emailQueue.QueueEmailAsync(message);
+
+            await _auditLogService.LogAsync(
+                adminId,
+                "ReportDocument",
+                id.ToString(),
+                $"SubjectId={document.SubjectId}; Reason={reason.Trim()}");
 
             return new JsonResult(new { success = true });
         }
